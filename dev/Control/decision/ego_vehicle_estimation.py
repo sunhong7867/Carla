@@ -1,53 +1,26 @@
 import numpy as np
-from dataclasses import dataclass
+from shared_types import TimeData, GPSData, IMUData, EgoData
 
 # ==============================
-# 데이터 구조 정의 (adas_shared.h 기반)
+# 상태 저장 구조체
 # ==============================
-@dataclass
-class TimeData:
-    current_time: float  # [ms]
-
-@dataclass
-class GPSData:
-    velocity_x: float  # [m/s]
-    velocity_y: float  # [m/s]
-    timestamp: float   # [ms]
-
-@dataclass
-class IMUData:
-    accel_x: float  # [m/s^2]
-    accel_y: float  # [m/s^2]
-    yaw_rate: float # [deg/s]
-
-@dataclass
-class EgoData:
-    velocity_x: float = 0.0
-    velocity_y: float = 0.0
-    acceleration_x: float = 0.0
-    acceleration_y: float = 0.0
-    heading: float = 0.0
-    position_x: float = 0.0
-    position_y: float = 0.0
-    position_z: float = 0.0
-
-@dataclass
 class EgoVehicleKFState:
-    last_gps_velocity_x: float = 0.0
-    last_gps_velocity_y: float = 0.0
-    last_gps_timestamp: float = 0.0
+    def __init__(self):
+        self.last_gps_velocity_x = 0.0
+        self.last_gps_velocity_y = 0.0
+        self.last_gps_timestamp = 0.0
 
-    previous_update_time: float = 0.0
-    prev_accel_x: float = 0.0
-    prev_accel_y: float = 0.0
-    prev_yaw_rate: float = 0.0
-    prev_gps_vel_x: float = 0.0
-    prev_gps_vel_y: float = 0.0
+        self.previous_update_time = 0.0
+        self.prev_accel_x = 0.0
+        self.prev_accel_y = 0.0
+        self.prev_yaw_rate = 0.0
+        self.prev_gps_vel_x = 0.0
+        self.prev_gps_vel_y = 0.0
 
-    gps_update_enabled: bool = False
+        self.gps_update_enabled = False
 
-    X: np.ndarray = np.zeros(5)         # 상태벡터 [vx, vy, ax, ay, heading]
-    P: np.ndarray = np.eye(5) * 100.0   # 공분산 행렬
+        self.X = np.zeros(5)                # [vx, vy, ax, ay, heading]
+        self.P = np.eye(5) * 100.0
 
 # ==============================
 # 상수 정의
@@ -79,17 +52,22 @@ def check_spike(new, old, thresh):
 # 초기화 함수
 # ==============================
 def init_ego_vehicle_kf_state():
-    return EgoVehicleKFState(
-        X=np.zeros(5),
-        P=np.eye(5) * 100.0
-    )
+    return EgoVehicleKFState()
 
 # ==============================
 # 메인 추정 함수
 # ==============================
-def ego_vehicle_estimation(time_data: TimeData, gps_data: GPSData, imu_data: IMUData, kf: EgoVehicleKFState) -> EgoData:
-    ego = EgoData()
-    ego.position_x = ego.position_y = ego.position_z = 0.0
+def ego_vehicle_estimation(time_data: TimeData,
+                           gps_data: GPSData,
+                           imu_data: IMUData,
+                           kf: EgoVehicleKFState) -> EgoData:
+
+    ego = EgoData(
+        velocity_x=0.0, velocity_y=0.0,
+        accel_x=0.0, accel_y=0.0,
+        heading=0.0, yaw_rate=0.0,
+        position_x=0.0, position_y=0.0, position_z=0.0
+    )
 
     gps_dt = abs(time_data.current_time - gps_data.timestamp)
     gps_enabled = gps_dt <= GPS_VALID_TIME_MS
@@ -163,8 +141,10 @@ def ego_vehicle_estimation(time_data: TimeData, gps_data: GPSData, imu_data: IMU
 
     ego.velocity_x = X_pred[0]
     ego.velocity_y = X_pred[1]
-    ego.acceleration_x = X_pred[2]
-    ego.acceleration_y = X_pred[3]
-    ego.heading = X_pred[4]
+    ego.accel_x   = X_pred[2]
+    ego.accel_y   = X_pred[3]
+    ego.heading   = X_pred[4]
+    ego.yaw_rate  = yaw
+    # ego.position_*는 항상 0으로 유지됨
 
     return ego

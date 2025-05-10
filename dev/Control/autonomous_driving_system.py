@@ -1,22 +1,20 @@
-# autonomous_driving_system.py
-
-import math
 import numpy as np
+import math
 import carla
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
-from decision import adaptive_cruise_control
-from decision import autonomous_emergency_brake
-from decision import ego_vehicle_estimation
-from decision import lane_following_assist
-from decision import target_selection
-from decision import arbitration
+from decision import ego_vehicle_estimation as EGO
+from decision import lane_selection as LANE
+from decision import target_selection as TS
+from decision import adaptive_cruise_control as ACC
+from decision import autonomous_emergency_brake as AEB
+from decision import lane_following_assist as LFA
+from decision import arbitration as ARB
 
-from controller import brake_control
-from controller import steer_control
-from controller import engine_control
+from controller import engine_control, brake_control, steer_control
+from shared.shared_types import LaneData, LaneType, LaneChangeStatus, TimeData, GPSData, IMUData
 
 
 class AutonomousDrivingSystem(BasicControl):
@@ -31,10 +29,11 @@ class AutonomousDrivingSystem(BasicControl):
         self._actor = actor
 
         self.control = carla.VehicleControl()
-        self.imu_acceleration = None
-        self.gps_velocity = None
-        self.gps_location = None
         self.current_time_ms = 0.0
+
+        self.imu_data = IMUData(0.0, 0.0, 0.0)
+        self.gps_data = GPSData(0.0, 0.0, 0.0)
+        self.kf_state = EGO.init_ego_vehicle_kf_state()
 
         self._set_imu_sensor()
         self._set_gps_sensor()
@@ -52,87 +51,109 @@ class AutonomousDrivingSystem(BasicControl):
         self._gps_sensor.listen(lambda data: self._on_gps_update(data))
 
     def _on_imu_update(self, data):
-        self.imu_acceleration = data.accelerometer
+        self.imu_data.accel_x = data.accelerometer.x
+        self.imu_data.accel_y = data.accelerometer.y
+        self.imu_data.yaw_rate = data.gyroscope.z
 
     def _on_gps_update(self, data):
-        self.gps_location = (data.latitude, data.longitude)
-        self.gps_velocity = self._actor.get_velocity()
-
-    def _get_lane_equations(self):
-        ego_loc = self._actor.get_location()
-        ego_wpt = self.map.get_waypoint(ego_loc, project_to_road=True)
-
-        def sample_waypoints(wpt):
-            samples = []
-            for _ in range(20):
-                loc = wpt.transform.location
-                samples.append((loc.x, loc.y))
-                nexts = wpt.next(5.0)
-                if not nexts:
-                    break
-                wpt = nexts[0]
-            return samples
-
-        def fit(points):
-            xs, ys = zip(*points)
-            return np.polyfit(xs, ys, 1) if len(points) >= 2 else (1.0, 1.0)
-
-        lane_info = []
-        for side in ['get_left_lane', None, 'get_right_lane']:
-            target = getattr(ego_wpt, side)() if side else ego_wpt
-            fit_line = fit(sample_waypoints(target)) if target else (1.0, 1.0)
-            lane_info.append(fit_line)
-
-        return lane_info[0], lane_info[2]  # left, right
+        vel = self._actor.get_velocity()
+        self.gps_data.velocity_x = vel.x
+        self.gps_data.velocity_y = vel.y
+        self.gps_data.timestamp = self.current_time_ms
 
     def _get_relative_objects(self):
         vehicles = self.world.get_actors().filter('vehicle.*')
         ego_tf = self._actor.get_transform()
         ego_loc = ego_tf.location
-        ego_yaw = math.radians(ego_tf.rotation.yaw)
-        cos_yaw, sin_yaw = math.cos(-ego_yaw), math.sin(-ego_yaw)
+        yaw = math.radians(ego_tf.rotation.yaw)
+        cy, sy = math.cos(-yaw), math.sin(-yaw)
 
-        objects = {}
-        for veh in vehicles:
-            if veh.id == self.ego_id:
+        objs = []
+        for v in vehicles:
+            if v.id == self.ego_id:
                 continue
-            loc = veh.get_location()
-            vel = veh.get_velocity()
+            loc = v.get_location()
+            vel = v.get_velocity()
             dx, dy = loc.x - ego_loc.x, loc.y - ego_loc.y
-            rel_x = dx * cos_yaw - dy * sin_yaw
-            rel_y = dx * sin_yaw + dy * cos_yaw
-            rel_vx = vel.x * cos_yaw - vel.y * sin_yaw
-            rel_vy = vel.x * sin_yaw + vel.y * cos_yaw
-            objects[veh.id] = (rel_x, rel_y, rel_vx, rel_vy)
-        return objects
+            rx = dx * cy - dy * sy
+            ry = dx * sy + dy * cy
+            rvx = vel.x * cy - vel.y * sy
+            rvy = vel.x * sy + vel.y * cy
+            heading = v.get_transform().rotation.yaw - ego_tf.rotation.yaw
+            objs.append({
+                'object_id': v.id,
+                'position_x': rx, 'position_y': ry,
+                'velocity_x': rvx, 'velocity_y': rvy,
+                'accel_x': 0.0, 'accel_y': 0.0,
+                'distance': math.hypot(rx, ry),
+                'heading': heading,
+                'object_type': 0,  # CAR
+                'status': 0        # MOVING
+            })
+        return objs
 
     def run_step(self):
-        self.current_time_ms += 50  # 시뮬레이션용 시간 tick
+        self.current_time_ms += 50.0
+        time_data = TimeData(self.current_time_ms)
+        ego_data = EGO.ego_vehicle_estimation(time_data, self.gps_data, self.imu_data, self.kf_state)
 
-        ego_velocity = ego_vehicle_estimation.ego_vehicle_estimation(self.imu_acceleration)
-        lane_left, lane_right = self._get_lane_equations()
-        lane_info = [lane_left, lane_right]
-        object_list = self._get_relative_objects()
+        lane_data = LaneData(
+            lane_type=LaneType.STRAIGHT,
+            curvature=0.0,
+            next_curvature=0.0,
+            offset=0.0,
+            heading=ego_data.heading,
+            width=3.5,
+            change_status=LaneChangeStatus.KEEP
+        )
+        lane_output = LANE.lane_selection(lane_data, ego_data)
 
-        # Target Selection
-        target_prec = target_selection.target_selection_preceding(object_list, lane_info, ego_velocity)
-        target_inter = target_selection.target_selection_intersection(object_list, ego_velocity)
+        obj_list = self._get_relative_objects()
+        filtered = TS.select_target_from_object_list(obj_list, ego_data, lane_output)
+        predicted = TS.predict_object_future_path(filtered, lane_output, lane_output)
+        acc_target, aeb_target = TS.select_targets_for_acc_aeb(ego_data, predicted, lane_output)
 
-        # ACC / AEB / LFA
-        acc_accel = adaptive_cruise_control.adaptive_cruise_control(target_prec, ego_velocity)
-        aeb_accel = autonomous_emergency_brake.autonomous_emergency_brake(target_prec, target_inter, ego_velocity)
-        steer_cmd = lane_following_assist.lane_following_assist_pid(lane_info, ego_velocity)
+        dt_sec = 0.05
+        acc_mode = ACC.acc_mode_selection(acc_target, ego_data, lane_output)
+        acc_dist = ACC.calculate_accel_for_distance_pid(acc_mode, acc_target, ego_data, self.current_time_ms)
+        acc_speed = ACC.calculate_accel_for_speed_pid(ego_data, lane_output, dt_sec)
+        acc_accel = ACC.acc_output_selection(acc_mode, acc_dist, acc_speed)
 
-        # Arbitration
-        final_accel, final_steer = arbitration.arbitration(acc_accel, aeb_accel, steer_cmd)
+        ttc = AEB.calculate_ttc_for_aeb(aeb_target, ego_data)
+        aeb_mode = AEB.aeb_mode_selection(aeb_target, ego_data, ttc)
+        aeb_accel = AEB.calculate_decel_for_aeb(aeb_mode, ttc)
 
-        # Control Output
-        self.control.throttle = engine_control.calc_engine_control_command(final_accel)
-        self.control.brake = brake_control.calc_brake_command(final_accel)
-        self.control.steer = steer_control.calc_steer_command(final_steer)
+        lfa_mode = LFA.lfa_mode_selection(ego_data)
+        steer_pid = LFA.calculate_steer_in_low_speed_pid(lane_output, dt_sec)
+        steer_sta = LFA.calculate_steer_in_high_speed_stanley(ego_data, lane_output)
+        steer_cmd = LFA.lfa_output_selection(lfa_mode, steer_pid, steer_sta, lane_output, ego_data)
+
+        ctrl = ARB.arbitration(acc_accel, aeb_accel, steer_cmd, aeb_mode)
+        self.control.throttle = engine_control.calc_engine_control_command(ctrl['throttle'])
+        self.control.brake = brake_control.calc_brake_command(ctrl['brake'])
+        self.control.steer = steer_control.calc_steer_command(ctrl['steer'])
+
         self._actor.apply_control(self.control)
-
         self._update_spectator()
+
+        # === Debugging Print ===
+        print("======================================")
+        print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
+        print(f"[ACC] Mode: {acc_mode.name} | ACC Accel: {acc_accel:.2f} m/s²")
+        print(f"[AEB] Mode: {aeb_mode.name} | AEB Accel: {aeb_accel:.2f} m/s²")
+        print(f"[LFA] Mode: {lfa_mode.name} | Steer_PID: {steer_pid:.2f}° | Steer_Stanley: {steer_sta:.2f}° | Final Steer: {steer_cmd:.2f}°")
+        print(f"[CTRL] Throttle: {self.control.throttle:.2f} | Brake: {self.control.brake:.2f} | Steer: {self.control.steer:.2f}")
+        print("======================================")
+
+    def reset(self):
+        if hasattr(self, "_imu_sensor"):
+            self._imu_sensor.stop()
+            self._imu_sensor.destroy()
+        if hasattr(self, "_gps_sensor"):
+            self._gps_sensor.stop()
+            self._gps_sensor.destroy()
+        self.kf_state = EGO.init_ego_vehicle_kf_state()
+        self.current_time_ms = 0.0
 
     def _update_spectator(self):
         tf = self._actor.get_transform()
