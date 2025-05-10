@@ -5,7 +5,7 @@
 # - calculate_decel_for_aeb
 
 import math
-from shared_types import EgoData, AEBTarget, AEBMode, TargetSituation
+from decision.shared_types import EgoData, AEBTarget, AEBMode, TargetSituation
 
 # ===== CONSTANTS =====
 INF_TTC = 99999.0
@@ -95,10 +95,10 @@ def calculate_decel_for_aeb(mode: AEBMode, ttc_data: dict) -> float:
         else:
             return 0.0
 
-    EPS = 1e-6
-    if ttc > ttc_brake + EPS:
+    eps = 1e-6
+    if ttc > ttc_brake + eps:
         return AEB_MIN_DECEL
-    if abs(ttc - ttc_brake) <= EPS:
+    if abs(ttc - ttc_brake) <= eps:
         return 0.0
 
     ratio = 1.0 - (ttc / ttc_brake)

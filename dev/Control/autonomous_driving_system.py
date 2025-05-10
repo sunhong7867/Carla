@@ -1,4 +1,3 @@
-import numpy as np
 import math
 import carla
 
@@ -14,8 +13,29 @@ from decision import lane_following_assist as LFA
 from decision import arbitration as ARB
 
 from controller import engine_control, brake_control, steer_control
-from shared.shared_types import LaneData, LaneType, LaneChangeStatus, TimeData, GPSData, IMUData
+from decision.shared_types import (
+    LaneData, LaneType, LaneChangeStatus,
+    TimeData, GPSData, IMUData,
+    ObjectData, ObjectType, ObjectStatus
+)
 
+# ========== dict → ObjectData 변환 ==========
+def convert_dict_to_objectdata(d):
+    return ObjectData(
+        object_id=d["object_id"],
+        object_type=ObjectType(d["object_type"]),
+        position_x=d["position_x"],
+        position_y=d["position_y"],
+        position_z=d.get("position_z", 0.0),
+        velocity_x=d["velocity_x"],
+        velocity_y=d["velocity_y"],
+        accel_x=d.get("accel_x", 0.0),
+        accel_y=d.get("accel_y", 0.0),
+        heading=d["heading"],
+        distance=d["distance"],
+        status=ObjectStatus(d["status"]),
+        cell_id=d.get("cell_id", 0)
+    )
 
 class AutonomousDrivingSystem(BasicControl):
     def __init__(self, actor, args=None):
@@ -82,9 +102,12 @@ class AutonomousDrivingSystem(BasicControl):
             heading = v.get_transform().rotation.yaw - ego_tf.rotation.yaw
             objs.append({
                 'object_id': v.id,
-                'position_x': rx, 'position_y': ry,
-                'velocity_x': rvx, 'velocity_y': rvy,
-                'accel_x': 0.0, 'accel_y': 0.0,
+                'position_x': rx,
+                'position_y': ry,
+                'velocity_x': rvx,
+                'velocity_y': rvy,
+                'accel_x': 0.0,
+                'accel_y': 0.0,
                 'distance': math.hypot(rx, ry),
                 'heading': heading,
                 'object_type': 0,  # CAR
@@ -108,9 +131,11 @@ class AutonomousDrivingSystem(BasicControl):
         )
         lane_output = LANE.lane_selection(lane_data, ego_data)
 
-        obj_list = self._get_relative_objects()
+        obj_dict_list = self._get_relative_objects()
+        obj_list = [convert_dict_to_objectdata(d) for d in obj_dict_list]
+
         filtered = TS.select_target_from_object_list(obj_list, ego_data, lane_output)
-        predicted = TS.predict_object_future_path(filtered, lane_output, lane_output)
+        predicted = TS.predict_object_future_path(filtered, lane_output)
         acc_target, aeb_target = TS.select_targets_for_acc_aeb(ego_data, predicted, lane_output)
 
         dt_sec = 0.05
@@ -138,12 +163,20 @@ class AutonomousDrivingSystem(BasicControl):
 
         # === Debugging Print ===
         print("======================================")
-        print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
-        print(f"[ACC] Mode: {acc_mode.name} | ACC Accel: {acc_accel:.2f} m/s²")
-        print(f"[AEB] Mode: {aeb_mode.name} | AEB Accel: {aeb_accel:.2f} m/s²")
-        print(f"[LFA] Mode: {lfa_mode.name} | Steer_PID: {steer_pid:.2f}° | Steer_Stanley: {steer_sta:.2f}° | Final Steer: {steer_cmd:.2f}°")
-        print(f"[CTRL] Throttle: {self.control.throttle:.2f} | Brake: {self.control.brake:.2f} | Steer: {self.control.steer:.2f}")
-        print("======================================")
+        #print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
+        #print(f"[ACC] Mode: {acc_mode.name} | ACC Accel: {acc_accel:.2f} m/s²")
+        # print(f"[AEB] Mode: {aeb_mode.name} | AEB Accel: {aeb_accel:.2f} m/s²")
+        # print(f"[LFA] Mode: {lfa_mode.name} | Steer_PID: {steer_pid:.2f}° | Steer_Stanley: {steer_sta:.2f}° | Final Steer: {steer_cmd:.2f}°")
+        #print(f"[CTRL] Throttle: {self.control.throttle:.2f} | Brake: {self.control.brake:.2f} | Steer: {self.control.steer:.2f}")
+        print(f"[Filtered] {len(filtered)} objects")
+        if filtered:
+            for i, obj in enumerate(filtered):
+                print(
+                    f"  F{i}: ID={obj.object_id}, dist={obj.distance:.2f}, status={obj.status.name}, cell={obj.cell_id}")
+
+        print(f"[Predicted] {len(predicted)} objects")
+        print(
+            f"[ACC Target] ID={acc_target.object_id}, Dist={acc_target.distance:.2f}, Mode={acc_mode.name}, Accel={acc_accel:.2f}")
 
     def reset(self):
         if hasattr(self, "_imu_sensor"):

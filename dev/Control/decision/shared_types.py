@@ -130,38 +130,13 @@ class ObjectData:
     cell_id: int
 
 @dataclass
-class FilteredObject:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    heading: float
-    distance: float
-    status: ObjectStatus
-    cell_id: int
+class FilteredObject(ObjectData):
+    pass
 
 @dataclass
-class PredictedObject:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    heading: float
-    distance: float
-    status: ObjectStatus
-    cell_id: int
-    cutin: bool
-    cutout: bool
+class PredictedObject(ObjectData):
+    cutin: bool = False
+    cutout: bool = False
 
 @dataclass
 class ACCTarget:

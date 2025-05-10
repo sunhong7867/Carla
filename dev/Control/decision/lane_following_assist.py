@@ -5,7 +5,7 @@
 # - calculate_steer_in_high_speed_stanley
 # - lfa_output_selection
 
-from shared_types import EgoData, LaneSelectOutput, LFAMode, LFA_LOW_SPEED_THRESHOLD, LFA_MAX_STEERING_ANGLE
+from decision.shared_types import EgoData, LaneSelectOutput, LFAMode, LFA_LOW_SPEED_THRESHOLD, LFA_MAX_STEERING_ANGLE
 import math
 
 # ===== PID / Stanley State =====

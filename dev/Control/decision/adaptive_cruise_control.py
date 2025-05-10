@@ -1,7 +1,7 @@
 # acc.py
 # ACC 기능 구현 모듈 (Python 버전)
 
-from shared_types import ACCMode, ObjectStatus, TargetSituation, LaneSelectOutput, EgoData, ACCTarget
+from decision.shared_types import ACCMode, ObjectStatus, TargetSituation, LaneSelectOutput, EgoData, ACCTarget
 
 # ===== PID 상태 변수 =====
 speed_integral = 0.0
@@ -51,12 +51,12 @@ def calculate_accel_for_distance_pid(mode: ACCMode, target_data: ACCTarget, ego_
     target_distance = 40.0
     error = target_data.distance - target_distance
 
-    Kp, Ki, Kd = 0.4, 0.05, 0.1
+    kp, ki, kd = 0.4, 0.05, 0.1
     dist_integral += error * delta_time
     d_err = (error - dist_prev_error) / delta_time
     dist_prev_error = error
 
-    accel = Kp * error + Ki * dist_integral + Kd * d_err
+    accel = kp * error + ki * dist_integral + kd * d_err
     accel = max(min(accel, 10.0), -10.0)
 
     if mode == ACCMode.STOP:
@@ -79,13 +79,13 @@ def calculate_accel_for_speed_pid(ego_data: EgoData, lane_data: LaneSelectOutput
         target_speed = min(target_speed, 15.0)
 
     error = target_speed - ego_data.velocity_x
-    Kp, Ki, Kd = 0.5, 0.1, 0.05
+    kp, ki, kd = 0.5, 0.1, 0.05
 
     speed_integral += error * delta_time
     d_err = (error - speed_prev_error) / (delta_time + 1e-5)
     speed_prev_error = error
 
-    accel = Kp * error + Ki * speed_integral + Kd * d_err
+    accel = kp * error + ki * speed_integral + kd * d_err
     return max(min(accel, 10.0), -10.0)
 
 # ===== FUNCTION 4: 최종 출력 가속도 선택 =====

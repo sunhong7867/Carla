@@ -1,5 +1,5 @@
 import numpy as np
-from shared_types import TimeData, GPSData, IMUData, EgoData
+from decision.shared_types import TimeData, GPSData, IMUData, EgoData
 
 # ==============================
 # 상태 저장 구조체
@@ -35,14 +35,14 @@ R_GPS = 0.1
 # ==============================
 # 유틸리티 함수
 # ==============================
-def invert_2x2(S):
-    det = S[0,0]*S[1,1] - S[0,1]*S[1,0]
+def invert_2x2(s):
+    det = s[0,0]*s[1,1] - s[0,1]*s[1,0]
     if abs(det) < 1e-6:
         return None
     inv_det = 1.0 / det
     return np.array([
-        [ S[1,1], -S[0,1]],
-        [-S[1,0],  S[0,0]]
+        [ s[1,1], -s[0,1]],
+        [-s[1,0],  s[0,0]]
     ]) * inv_det
 
 def check_spike(new, old, thresh):
