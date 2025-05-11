@@ -89,8 +89,8 @@ class EgoVehicleKFState:
 
     gps_update_enabled: bool = False
 
-    X: np.ndarray = np.zeros(5)         # 상태벡터 [vx, vy, ax, ay, heading]
-    P: np.ndarray = np.eye(5) * 100.0   # 공분산 행렬
+    X: np.ndarray = np.zeros(5)
+    P: np.ndarray = np.eye(5) * 100.0
 
 @dataclass
 class LaneData:

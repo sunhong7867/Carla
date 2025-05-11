@@ -1,4 +1,4 @@
-# lfa.py
+# lane_following_assist.py
 # Python version of LFA module implementing:
 # - lfa_mode_selection
 # - calculate_steer_in_low_speed_pid

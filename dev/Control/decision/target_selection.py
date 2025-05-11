@@ -58,7 +58,7 @@ def select_target_from_object_list(obj_list: List[ObjectData],
         status = obj.status
         if heading_diff >= 150:
             status = ObjectStatus.ONCOMING
-        elif abs(rel_vel) >= 0.5:
+        elif abs(rel_vel) >= 0.2 or obj.distance < 40.0:
             status = ObjectStatus.MOVING
         else:
             status = ObjectStatus.STATIONARY

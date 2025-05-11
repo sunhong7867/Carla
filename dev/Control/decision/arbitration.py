@@ -1,6 +1,5 @@
 # arbitration.py
 from typing import Dict
-
 from decision.shared_types import AEBMode, VehicleControl
 
 # 상수 정의

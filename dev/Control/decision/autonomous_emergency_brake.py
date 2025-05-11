@@ -1,4 +1,4 @@
-# aeb.py
+# autonomous_emergency_brake.py
 # Python version of AEB module implementing:
 # - calculate_ttc_for_aeb
 # - aeb_mode_selection
