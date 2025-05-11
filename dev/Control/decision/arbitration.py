@@ -1,44 +1,46 @@
-# Python version of arbitration logic
-# Inputs:
-# - acceleration_by_acc: ACC module output (-10 to +10)
-# - acceleration_by_aeb: AEB module output (-10 to 0)
-# - steer_by_lfa: LFA module output (steering angle in degrees)
-# - aeb_mode: one of ['NORMAL', 'ALERT', 'BRAKE']
-# Output:
-# - dict with throttle (0~1), brake (0~1), steer (-1~1)
+# arbitration.py
+from typing import Dict
+from decision.shared_types import AEBMode, VehicleControl
 
-MAX_THROTTLE_ACCEL = 10.0  # m/s^2
-MAX_BRAKE_DECEL = -10.0    # m/s^2
-MAX_STEER_ANGLE = 540.0    # degrees
+# 상수 정의
+MAX_THROTTLE_ACCEL = 10.0  # [m/s^2]
+MAX_BRAKE_DECEL = -10.0  # [m/s^2]
+MAX_STEER_ANGLE = 540.0  # [deg]
 
-class AEBMode:
-    NORMAL = 'NORMAL'
-    ALERT = 'ALERT'
-    BRAKE = 'BRAKE'
 
-def arbitration(accel_acc, decel_aeb, steer_lfa, aeb_mode):
-    selected_accel = 0.0
+# ===== FUNCTION: arbitration =====
+def arbitration(accel_acc: float, decel_aeb: float, steer_lfa: float, aeb_mode: AEBMode) -> Dict[str, float]:
+    """
+    Arbitration logic to resolve final vehicle control output.
 
-    # 1. Choose longitudinal accel
+    Parameters:
+    - accel_acc: ACC acceleration output (m/s^2)
+    - decel_aeb: AEB braking deceleration (m/s^2)
+    - steer_lfa: LFA steering angle (deg)
+    - aeb_mode: current AEB mode (Enum)
+
+    Returns:
+    - VehicleControl object (throttle, brake, steer)
+    """
+    # 1. 종방향 가속도 선택
     if aeb_mode == AEBMode.BRAKE:
-        selected_accel = decel_aeb  # expected: -10 ~ 0
+        selected_accel = decel_aeb
     else:
-        selected_accel = accel_acc  # expected: -10 ~ +10
+        selected_accel = accel_acc
 
-    # 2. throttle / brake command
-    if selected_accel > 0:
-        throttle = min(max(selected_accel / MAX_THROTTLE_ACCEL, 0.0), 1.0)
+    # 2. Throttle & Brake 계산
+    if selected_accel > 0.0:
+        throttle = min(selected_accel / MAX_THROTTLE_ACCEL, 1.0)
         brake = 0.0
-    elif selected_accel < 0:
-        brake = min(max(abs(selected_accel / MAX_BRAKE_DECEL), 0.0), 1.0)
+    elif selected_accel < 0.0:
+        brake = min(abs(selected_accel) / abs(MAX_BRAKE_DECEL), 1.0)
         throttle = 0.0
     else:
         throttle = 0.0
         brake = 0.0
 
-    # 3. steer normalization
-    steer_ratio = steer_lfa / MAX_STEER_ANGLE
-    steer = min(max(steer_ratio, -1.0), 1.0)
+    # 3. 조향 각도 정규화
+    steer = max(min(steer_lfa / MAX_STEER_ANGLE, 1.0), -1.0)
 
     return {
         'throttle': throttle,

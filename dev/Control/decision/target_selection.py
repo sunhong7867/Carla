@@ -1,122 +1,17 @@
-# 이 코드는 C 기반 target_selection.c/h의 전체 기능을 Python으로 변환한 모듈입니다.
-# 주요 함수:
-# 1. select_target_from_object_list()
-# 2. predict_object_future_path()
-# 3. select_targets_for_acc_aeb()
+# target_selection.py
+# Python version of target_selection module
+# Implements:
+# - select_target_from_object_list
+# - predict_object_future_path
+# - select_targets_for_acc_aeb
 
-from dataclasses import dataclass
-from enum import Enum
 import math
-
-# ===== ENUM 정의 =====
-class ObjectType(Enum):
-    CAR = 0
-    PEDESTRIAN = 1
-    BICYCLE = 2
-    MOTORCYCLE = 3
-
-class ObjectStatus(Enum):
-    MOVING = 0
-    STOPPED = 1
-    STATIONARY = 2
-    ONCOMING = 3
-
-class TargetSituation(Enum):
-    NORMAL = 0
-    CUTIN = 1
-    CUTOUT = 2
-    CURVE = 3
-
-# ===== DATA STRUCTURES =====
-@dataclass
-class ObjectData:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    distance: float
-    heading: float
-    status: ObjectStatus
-
-@dataclass
-class FilteredObject:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    heading: float
-    distance: float
-    status: ObjectStatus
-    cell_id: int
-
-@dataclass
-class PredictedObject:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    heading: float
-    distance: float
-    status: ObjectStatus
-    cell_id: int
-    cutin: bool
-    cutout: bool
-
-@dataclass
-class EgoData:
-    velocity_x: float
-    velocity_y: float
-    heading: float
-
-@dataclass
-class LaneSelectOutput:
-    lane_width: float
-    lane_offset: float
-    heading_error: float
-    is_curved_lane: bool
-
-@dataclass
-class ACC_Target:
-    object_id: int
-    position_x: float
-    position_y: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    distance: float
-    heading: float
-    status: ObjectStatus
-    situation: TargetSituation
-
-@dataclass
-class AEB_Target:
-    object_id: int
-    position_x: float
-    position_y: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    distance: float
-    heading: float
-    status: ObjectStatus
-    situation: TargetSituation
+from decision.shared_types import (
+    ObjectData, ObjectStatus, ObjectType, TargetSituation,
+    FilteredObject, PredictedObject, EgoData, LaneSelectOutput,
+    ACCTarget, AEBTarget
+)
+from typing import List, Tuple
 
 # ===== 유틸리티 =====
 def normalize_heading(hdg):
@@ -126,10 +21,10 @@ def normalize_heading(hdg):
         hdg += 360.0
     return hdg
 
-# ... (이전 정의 생략)
-
 # ===== 함수 1: select_target_from_object_list =====
-def select_target_from_object_list(obj_list, ego_data, lane_info):
+def select_target_from_object_list(obj_list: List[ObjectData],
+                                   ego_data: EgoData,
+                                   lane_info: LaneSelectOutput) -> List[FilteredObject]:
     filtered_list = []
     if not obj_list or not ego_data or not lane_info:
         return filtered_list
@@ -163,7 +58,7 @@ def select_target_from_object_list(obj_list, ego_data, lane_info):
         status = obj.status
         if heading_diff >= 150:
             status = ObjectStatus.ONCOMING
-        elif abs(rel_vel) >= 0.5:
+        elif abs(rel_vel) >= 0.2 or obj.distance < 40.0:
             status = ObjectStatus.MOVING
         else:
             status = ObjectStatus.STATIONARY
@@ -211,10 +106,9 @@ def select_target_from_object_list(obj_list, ego_data, lane_info):
 
     return filtered_list
 
-# ... (이전 정의 생략)
-
 # ===== 함수 2: predict_object_future_path =====
-def predict_object_future_path(filtered_list, lane_data, lane_info):
+def predict_object_future_path(filtered_list: List[FilteredObject],
+                               lane_info: LaneSelectOutput) -> List[PredictedObject]:
     predicted_list = []
     t = 3.0  # seconds
 
@@ -229,20 +123,10 @@ def predict_object_future_path(filtered_list, lane_data, lane_info):
             px = x0 + vx * t + 0.5 * ax * t * t
             py = y0 + vy * t + 0.5 * ay * t * t
 
-        dx = px
-        dy = py
-        dist = math.sqrt(dx**2 + dy**2)
-
+        dist = math.sqrt(px ** 2 + py ** 2)
         lateral_pos = py - lane_info.lane_offset
-        cutin = False
-        cutout = False
-        threshold = 0.85
-        lane_boundary = lane_info.lane_width * 0.5
-
-        if (vx >= 0.5 and abs(vy) >= 0.2 and abs(lateral_pos) <= threshold):
-            cutin = True
-        if (abs(vy) >= 0.2 and abs(lateral_pos) > (lane_boundary + threshold)):
-            cutout = True
+        cutin = (vx >= 0.5 and abs(vy) >= 0.2 and abs(lateral_pos) <= 0.85)
+        cutout = (abs(vy) >= 0.2 and abs(lateral_pos) > lane_info.lane_width * 0.5 + 0.85)
 
         predicted_list.append(PredictedObject(
             object_id=fo.object_id,
@@ -264,18 +148,18 @@ def predict_object_future_path(filtered_list, lane_data, lane_info):
 
     return predicted_list
 
-# ... (이전 정의 생략)
-
 # ===== 함수 3: select_targets_for_acc_aeb =====
-def select_targets_for_acc_aeb(ego_data, pred_list, lane_info):
-    acc_target = ACC_Target(
+def select_targets_for_acc_aeb(ego_data: EgoData,
+                               pred_list: List[PredictedObject],
+                               lane_info: LaneSelectOutput) -> Tuple[ACCTarget, AEBTarget]:
+    acc_target = ACCTarget(
         object_id=-1, position_x=0, position_y=0,
         velocity_x=0, velocity_y=0, accel_x=0, accel_y=0,
         distance=0, heading=0, status=ObjectStatus.STATIONARY,
         situation=TargetSituation.NORMAL
     )
 
-    aeb_target = AEB_Target(
+    aeb_target = AEBTarget(
         object_id=-1, position_x=0, position_y=0,
         velocity_x=0, velocity_y=0, accel_x=0, accel_y=0,
         distance=0, heading=0, status=ObjectStatus.STATIONARY,
@@ -329,7 +213,7 @@ def select_targets_for_acc_aeb(ego_data, pred_list, lane_info):
                 best_aeb = obj
 
     if best_acc:
-        acc_target = ACC_Target(
+        acc_target = ACCTarget(
             object_id=best_acc.object_id,
             position_x=best_acc.position_x,
             position_y=best_acc.position_y,
@@ -344,7 +228,7 @@ def select_targets_for_acc_aeb(ego_data, pred_list, lane_info):
         )
 
     if best_aeb:
-        aeb_target = AEB_Target(
+        aeb_target = AEBTarget(
             object_id=best_aeb.object_id,
             position_x=best_aeb.position_x,
             position_y=best_aeb.position_y,
