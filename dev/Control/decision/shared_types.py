@@ -1,4 +1,4 @@
-import numpy as np  # ← NumPy import 반드시 추가
+import numpy as np
 
 from dataclasses import dataclass
 from enum import Enum
@@ -89,8 +89,8 @@ class EgoVehicleKFState:
 
     gps_update_enabled: bool = False
 
-    X: np.ndarray = np.zeros(5)         # 상태벡터 [vx, vy, ax, ay, heading]
-    P: np.ndarray = np.eye(5) * 100.0   # 공분산 행렬
+    X: np.ndarray = np.zeros(5)
+    P: np.ndarray = np.eye(5) * 100.0
 
 @dataclass
 class LaneData:

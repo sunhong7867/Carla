@@ -22,7 +22,7 @@
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0" />
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0" />
 
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="40" />
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="10" />
     <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0" />
 
     <ParameterDeclaration name="ego_height" parameterType="double" value="28" />
@@ -57,26 +57,6 @@
         </Axles>
         <Properties>
           <Property name="type" value="ego_vehicle" />
-        </Properties>
-      </Vehicle>
-    </ScenarioObject>
-
-    <ScenarioObject name="target">
-      <Vehicle name="vehicle.pass.black.carnival" vehicleCategory="car">
-        <ParameterDeclarations />
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0" />
-        <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9" />
-          <Dimensions width="2.1" length="4.5" height="1.8" />
-        </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1"
-            positionZ="0.3" />
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0"
-            positionZ="0.3" />
-        </Axles>
-        <Properties>
-          <Property name="type" value="simulation" />
         </Properties>
       </Vehicle>
     </ScenarioObject>
@@ -131,34 +111,13 @@
           </PrivateAction>
         </Private>
 
-        <Private entityRef="target">
-          <PrivateAction>
-            <LongitudinalAction>
-              <SpeedAction>
-                <SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time" />
-                <SpeedActionTarget>
-                  <AbsoluteTargetSpeed value="$k50" />
-                </SpeedActionTarget>
-              </SpeedAction>
-            </LongitudinalAction>
-          </PrivateAction>
-          <PrivateAction>
-            <TeleportAction>
-              <Position>
-                <WorldPosition x="$targetXinitposition" y="$targetYinitposition" z="$ego_height"
-                  h="0" p="0" r="0" />
-              </Position>
-            </TeleportAction>
-          </PrivateAction>
-        </Private>
-
       </Actions>
     </Init>
     <Story name="MyStory">
       <Act name="Speedupall">
         <ManeuverGroup maximumExecutionCount="1" name="Speedupall">
           <Actors selectTriggeringEntities="false">
-            <EntityRef entityRef="target" />
+            <EntityRef entityRef="hero"/>
           </Actors>
           <Maneuver name="AllSpeedUp">
             <Event name="AllSpeedUpEvent" priority="overwrite">

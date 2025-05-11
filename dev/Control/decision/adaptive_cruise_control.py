@@ -1,4 +1,4 @@
-# acc.py
+# adaptive_cruise_control.py
 # ACC 기능 구현 모듈 (Python 버전)
 
 from decision.shared_types import ACCMode, ObjectStatus, TargetSituation, LaneSelectOutput, EgoData, ACCTarget
