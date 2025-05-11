@@ -1,5 +1,4 @@
-# shared_types.py
-# ADAS 시스템 전체 모듈 공용 구조체, 상수, 열거형 정의
+import numpy as np  # ← NumPy import 반드시 추가
 
 from dataclasses import dataclass
 from enum import Enum
@@ -42,6 +41,10 @@ class AEBMode(Enum):
     ALERT = 1
     BRAKE = 2
 
+class LFAMode(Enum):
+    LOW_SPEED = 0
+    HIGH_SPEED = 1
+
 # ===== STRUCT 정의 =====
 @dataclass
 class TimeData:
@@ -70,6 +73,24 @@ class EgoData:
     position_x: float
     position_y: float
     position_z: float
+
+@dataclass
+class EgoVehicleKFState:
+    last_gps_velocity_x: float = 0.0
+    last_gps_velocity_y: float = 0.0
+    last_gps_timestamp: float = 0.0
+
+    previous_update_time: float = 0.0
+    prev_accel_x: float = 0.0
+    prev_accel_y: float = 0.0
+    prev_yaw_rate: float = 0.0
+    prev_gps_vel_x: float = 0.0
+    prev_gps_vel_y: float = 0.0
+
+    gps_update_enabled: bool = False
+
+    X: np.ndarray = np.zeros(5)         # 상태벡터 [vx, vy, ax, ay, heading]
+    P: np.ndarray = np.eye(5) * 100.0   # 공분산 행렬
 
 @dataclass
 class LaneData:
@@ -181,11 +202,14 @@ LANE_CURVE_THRESHOLD = 800.0
 LANE_CURVE_DIFF_THRESHOLD = 400.0
 MAX_OBJECT_DISTANCE = 200.0
 LATERAL_THRESHOLD = 4.0
+
 MAX_ACCEL = 10.0
 MIN_ACCEL = -10.0
+
 AEB_MAX_BRAKE_DECEL = -10.0
 AEB_MIN_BRAKE_DECEL = -2.0
 AEB_ALERT_BUFFER_TIME = 1.2
 AEB_DEFAULT_MAX_DECEL = 9.0
+
 LFA_LOW_SPEED_THRESHOLD = 16.67
 LFA_MAX_STEERING_ANGLE = 540.0
