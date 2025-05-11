@@ -3,7 +3,11 @@
 # - Input: LaneData, EgoData (from shared_types)
 # - Output: LaneSelectOutput
 
-from shared_types import LaneData, EgoData, LaneSelectOutput, LaneType, LaneChangeStatus
+from decision.shared_types import LaneData, EgoData, LaneSelectOutput, LaneChangeStatus
+
+# ===== 상수 정의 =====
+LANE_CURVE_THRESHOLD = 800.0
+LANE_CURVE_DIFF_THRESHOLD = 400.0
 
 # ===== Lane Selection 함수 =====
 def lane_selection(lane_data: LaneData, ego_data: EgoData) -> LaneSelectOutput:

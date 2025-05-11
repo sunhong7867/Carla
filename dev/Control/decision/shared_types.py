@@ -89,8 +89,8 @@ class EgoVehicleKFState:
 
     gps_update_enabled: bool = False
 
-    X: np.ndarray = np.zeros(5)         # 상태벡터 [vx, vy, ax, ay, heading]
-    P: np.ndarray = np.eye(5) * 100.0   # 공분산 행렬
+    X: np.ndarray = np.zeros(5)
+    P: np.ndarray = np.eye(5) * 100.0
 
 @dataclass
 class LaneData:
@@ -130,38 +130,13 @@ class ObjectData:
     cell_id: int
 
 @dataclass
-class FilteredObject:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    heading: float
-    distance: float
-    status: ObjectStatus
-    cell_id: int
+class FilteredObject(ObjectData):
+    pass
 
 @dataclass
-class PredictedObject:
-    object_id: int
-    object_type: ObjectType
-    position_x: float
-    position_y: float
-    position_z: float
-    velocity_x: float
-    velocity_y: float
-    accel_x: float
-    accel_y: float
-    heading: float
-    distance: float
-    status: ObjectStatus
-    cell_id: int
-    cutin: bool
-    cutout: bool
+class PredictedObject(ObjectData):
+    cutin: bool = False
+    cutout: bool = False
 
 @dataclass
 class ACCTarget:

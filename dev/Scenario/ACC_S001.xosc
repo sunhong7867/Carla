@@ -1,19 +1,24 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2023-07-17T12:00:00" description="ACC Test Scenario" author="SH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2023-07-17T12:00:00" description="ACC_S001: 전방 차량 없음, ADAS ACC 목표 속도 유지 시나리오" author="YCS"/>
+
   <ParameterDeclarations>
-    <ParameterDeclaration name="egoinitspeed" parameterType="double" value="14"/>
-    <ParameterDeclaration name="targetinitspeed" parameterType="double" value="13.89"/>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="20"/>
-    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
+    <ParameterDeclaration name="weather_condition" parameterType="string" value="rain"/>
+    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="1.0"/>
+    <ParameterDeclaration name="cloud_State" parameterType="string" value="free"/>
+    <ParameterDeclaration name="fog_range" parameterType="double" value="100.0"/>
   </ParameterDeclarations>
+
+  <CatalogLocations/>
+
   <RoadNetwork>
     <LogicFile filepath="Map1"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
+
   <Entities>
     <ScenarioObject name="hero">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
@@ -31,47 +36,34 @@
         </Properties>
       </Vehicle>
     </ScenarioObject>
-    <ScenarioObject name="target">
-      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
-        <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9"/>
-          <Dimensions width="2.1" length="4.5" height="1.8"/>
-        </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
-        <Properties>
-          <Property name="type" value="static"/>
-        </Properties>
-      </Vehicle>
-    </ScenarioObject>
   </Entities>
+
   <Storyboard>
     <Init>
       <Actions>
         <GlobalAction>
           <EnvironmentAction>
-            <Environment name="Default">
+            <Environment name="Environment1">
               <TimeOfDay animation="true" dateTime="2022-10-01T12:00:00"/>
-              <Weather cloudState="free">
+              <Weather cloudState="$cloud_State">
                 <Sun intensity="10000" azimuth="0" elevation="1.57"/>
                 <Fog visualRange="10000.0"/>
-                <Precipitation precipitationType="none" intensity="0.0"/>
+                <Precipitation precipitationType="$weather_condition" intensity="$precipitationType_intensity"/>
               </Weather>
               <RoadCondition frictionScaleFactor="1.0"/>
             </Environment>
           </EnvironmentAction>
         </GlobalAction>
+
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
-                <Position>
-                    <WorldPosition x="$heroXinitposition" y="$heroYinitposition" z="$ego_height" h="0" p="0" r="0"/>
-                </Position>
+              <Position>
+                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
             </TeleportAction>
           </PrivateAction>
+
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
@@ -92,41 +84,32 @@
             </ControllerAction>
           </PrivateAction>
         </Private>
-        <Private entityRef="target">
-          <PrivateAction>
-            <TeleportAction>
-                <Position>
-                    <WorldPosition x="$targetXinitposition" y="$targetYinitposition" z="$ego_height" h="0" p="0" r="0"/>
-                </Position>
-            </TeleportAction>
-          </PrivateAction>
-          <PrivateAction>
-            <LongitudinalAction>
-              <SpeedAction>
-                <SpeedActionDynamics dynamicsShape="linear" value="1.0" dynamicsDimension="time"/>
-                <SpeedActionTarget>
-                  <AbsoluteTargetSpeed value="$targetinitspeed"/>
-                </SpeedActionTarget>
-              </SpeedAction>
-            </LongitudinalAction>
-          </PrivateAction>
-        </Private>
       </Actions>
     </Init>
-    <Story name="ACC_Test_Story">
-      <Act name="MainAct">
-        <ManeuverGroup name="ACCGroup" maximumExecutionCount="1">
+
+    <Story name="ACC_TargetSpeed">
+      <Act name="MaintainSpeed">
+        <ManeuverGroup maximumExecutionCount="1" name="ACC_MG">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="FollowTarget">
-            <Event name="Start" priority="overwrite">
-              <Action name="SpeedTrigger">
-                <PrivateAction/>
+          <Maneuver name="ACC_Idle">
+            <Event name="ACC_Trigger" priority="overwrite">
+              <Action name="NoAction">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="0.1" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="0.0"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="SimStart" delay="0" conditionEdge="rising">
+                  <Condition name="StartNow" delay="0" conditionEdge="rising">
                     <ByValueCondition>
                       <SimulationTimeCondition value="0" rule="greaterThan"/>
                     </ByValueCondition>
@@ -136,13 +119,24 @@
             </Event>
           </Maneuver>
         </ManeuverGroup>
+
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition name="ActStart" delay="0" conditionEdge="rising">
+              <ByValueCondition>
+                <SimulationTimeCondition value="0" rule="greaterThan"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
       </Act>
     </Story>
+
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndSim" delay="0" conditionEdge="rising">
+        <Condition name="EndScenario" delay="1" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="20" rule="greaterThan"/>
+            <SimulationTimeCondition value="30" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

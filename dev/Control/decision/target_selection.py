@@ -6,11 +6,12 @@
 # - select_targets_for_acc_aeb
 
 import math
-from shared_types import (
+from decision.shared_types import (
     ObjectData, ObjectStatus, ObjectType, TargetSituation,
     FilteredObject, PredictedObject, EgoData, LaneSelectOutput,
     ACCTarget, AEBTarget
 )
+from typing import List, Tuple
 
 # ===== 유틸리티 =====
 def normalize_heading(hdg):
@@ -21,9 +22,9 @@ def normalize_heading(hdg):
     return hdg
 
 # ===== 함수 1: select_target_from_object_list =====
-def select_target_from_object_list(obj_list: list[ObjectData],
+def select_target_from_object_list(obj_list: List[ObjectData],
                                    ego_data: EgoData,
-                                   lane_info: LaneSelectOutput) -> list[FilteredObject]:
+                                   lane_info: LaneSelectOutput) -> List[FilteredObject]:
     filtered_list = []
     if not obj_list or not ego_data or not lane_info:
         return filtered_list
@@ -57,7 +58,7 @@ def select_target_from_object_list(obj_list: list[ObjectData],
         status = obj.status
         if heading_diff >= 150:
             status = ObjectStatus.ONCOMING
-        elif abs(rel_vel) >= 0.5:
+        elif abs(rel_vel) >= 0.2 or obj.distance < 40.0:
             status = ObjectStatus.MOVING
         else:
             status = ObjectStatus.STATIONARY
@@ -106,8 +107,8 @@ def select_target_from_object_list(obj_list: list[ObjectData],
     return filtered_list
 
 # ===== 함수 2: predict_object_future_path =====
-def predict_object_future_path(filtered_list: list[FilteredObject],
-                               lane_data, lane_info: LaneSelectOutput) -> list[PredictedObject]:
+def predict_object_future_path(filtered_list: List[FilteredObject],
+                               lane_info: LaneSelectOutput) -> List[PredictedObject]:
     predicted_list = []
     t = 3.0  # seconds
 
@@ -149,8 +150,8 @@ def predict_object_future_path(filtered_list: list[FilteredObject],
 
 # ===== 함수 3: select_targets_for_acc_aeb =====
 def select_targets_for_acc_aeb(ego_data: EgoData,
-                               pred_list: list[PredictedObject],
-                               lane_info: LaneSelectOutput) -> tuple[ACCTarget, AEBTarget]:
+                               pred_list: List[PredictedObject],
+                               lane_info: LaneSelectOutput) -> Tuple[ACCTarget, AEBTarget]:
     acc_target = ACCTarget(
         object_id=-1, position_x=0, position_y=0,
         velocity_x=0, velocity_y=0, accel_x=0, accel_y=0,

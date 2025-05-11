@@ -1,5 +1,6 @@
 # arbitration.py
-from shared_types import AEBMode, VehicleControl
+from typing import Dict
+from decision.shared_types import AEBMode, VehicleControl
 
 # 상수 정의
 MAX_THROTTLE_ACCEL = 10.0  # [m/s^2]
@@ -8,7 +9,7 @@ MAX_STEER_ANGLE = 540.0  # [deg]
 
 
 # ===== FUNCTION: arbitration =====
-def arbitration(accel_acc: float, decel_aeb: float, steer_lfa: float, aeb_mode: AEBMode) -> VehicleControl:
+def arbitration(accel_acc: float, decel_aeb: float, steer_lfa: float, aeb_mode: AEBMode) -> Dict[str, float]:
     """
     Arbitration logic to resolve final vehicle control output.
 
@@ -41,8 +42,8 @@ def arbitration(accel_acc: float, decel_aeb: float, steer_lfa: float, aeb_mode: 
     # 3. 조향 각도 정규화
     steer = max(min(steer_lfa / MAX_STEER_ANGLE, 1.0), -1.0)
 
-    return VehicleControl(
-        throttle=throttle,
-        brake=brake,
-        steer=steer
-    )
+    return {
+        'throttle': throttle,
+        'brake': brake,
+        'steer': steer
+    }
