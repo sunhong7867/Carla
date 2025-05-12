@@ -55,6 +55,7 @@ class GPSData:
     velocity_x: float
     velocity_y: float
     timestamp: float
+    last_received_time_ms: float = 0.0  # ← 추가
 
 @dataclass
 class IMUData:

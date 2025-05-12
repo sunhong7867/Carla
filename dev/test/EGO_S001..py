@@ -3,7 +3,9 @@
         tf = self._actor.get_transform()
         ego_loc = tf.location
         now = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-        print(f"[DEBUG][S1] time={self.current_time_ms:.1f}ms Ego_Position = ({ego_data.position_x:.2f}, {ego_data.position_y:.2f}, {ego_data.position_z:.2f})")
+        print(f"[DEBUG][S1] time={self.current_time_ms:.1f}ms Ego_Position = ({ego_data.position_x:.2f}, {ego_data.position_y:.2f}, {ego_data.position_z:.2f}), "
+        f"Velocity = ({ego_data.velocity_x:.2f}, {ego_data.velocity_y:.2f})")
+
 
         front_offset_x = 1.5
         ref_x = ego_loc.x - front_offset_x
