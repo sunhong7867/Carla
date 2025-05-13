@@ -1,6 +1,5 @@
 import math
 import carla
-from datetime import datetime
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
@@ -111,13 +110,13 @@ class AutonomousDrivingSystem(BasicControl):
                 'accel_y': 0.0,
                 'distance': math.hypot(rx, ry),
                 'heading': heading,
-                'object_type': 0,
-                'status': 0
+                'object_type': 0,  # CAR
+                'status': 0        # MOVING
             })
         return objs
 
     def run_step(self):
-        self.current_time_ms += 100.0
+        self.current_time_ms += 50.0
         time_data = TimeData(self.current_time_ms)
         ego_data = EGO.ego_vehicle_estimation(time_data, self.gps_data, self.imu_data, self.kf_state)
 
@@ -162,31 +161,15 @@ class AutonomousDrivingSystem(BasicControl):
         self._actor.apply_control(self.control)
         self._update_spectator()
 
-        # === Debugging Print for EGO_S003 ===
-        print("======================================")
-        print(f"[DEBUG][S0] time = {self.current_time_ms:.1f} ms")
+        # === Debugging Print ===
+        # 기준 좌표 변환
+        ego_tf = self._actor.get_transform()
+        ego_loc = ego_tf.location
+        front_offset_x = 1.5  # 차량 앞바퀴 중심 오프셋 (예시값)
+        ref_x = ego_loc.x - front_offset_x
+        ref_y = ego_loc.y
+        print(f"[STEP2] ego.get_location() = ({ego_loc.x:.2f}, {ego_loc.y:.2f}) → 기준점 변환 후 ({ref_x:.2f}, {ref_y:.2f})")
 
-        # Step 1: GPS 무효 상태 확인 (지연 여부)
-        gps_dt = abs(self.current_time_ms - self.gps_data.timestamp)
-        print(f"[DEBUG][S1] gps_dt = {gps_dt:.1f} ms → {'FAIL' if gps_dt <= 50.0 else 'OK'}")
-
-        # Step 2: Kalman 필터 업데이트 비활성 여부 (직접 변수 없음 → Step 1으로 간접 판단)
-        # 추가 조건이 없으므로 생략 가능
-
-        # Step 3: 속도 추정 연속성 확인 (이전 추정값과 비교)
-        if hasattr(self, "prev_est_vel_x"):
-            d_est_vel = abs(ego_data.velocity_x - self.prev_est_vel_x)
-            print(f"[DEBUG][S2] ΔEstimatedVelocity = {d_est_vel:.3f} m/s → {'OK' if d_est_vel < 2.0 else 'FAIL'}")
-        else:
-            print("[DEBUG][S2] ΔEstimatedVelocity = --- (초기 프레임)")
-        self.prev_est_vel_x = ego_data.velocity_x
-
-        # Step 4: Kalman 추정값과 Ground Truth 비교
-        gt_vel = self._actor.get_velocity()
-        gt_speed = math.hypot(gt_vel.x, gt_vel.y)
-        error_speed = abs(ego_data.velocity_x - gt_speed)
-        print(
-            f"[DEBUG][S3] EstimatedVelocity = {ego_data.velocity_x:.2f} m/s, GroundTruthVelocity = {gt_speed:.2f} m/s, Error = {error_speed:.2f} m/s → {'OK' if error_speed <= 2.0 else 'FAIL'}")
 
     def reset(self):
         if hasattr(self, "_imu_sensor"):

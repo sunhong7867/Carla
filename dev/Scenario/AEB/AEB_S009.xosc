@@ -1,12 +1,11 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="AEB_S002: 전방 Moving 차량 감지 → Alert 모드 전환 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="AEB_S009: AEB 비작동 조건 검증 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="40.0"/>
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="20.0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28.0"/>
   </ParameterDeclarations>
 
@@ -16,7 +15,6 @@
   </RoadNetwork>
 
   <Entities>
-    <!-- Ego 차량 정의 -->
     <ScenarioObject name="hero">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
         <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
@@ -24,28 +22,21 @@
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
+        <Axles/>
         <Properties>
           <Property name="type" value="ego_vehicle"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
 
-    <!-- 전방 차량 정의 -->
     <ScenarioObject name="vehicleA">
-      <Vehicle name="vehicle.pass.black.audi" vehicleCategory="car">
-        <Performance maxSpeed="69.444" maxAcceleration="8.0" maxDeceleration="8.0"/>
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
+        <Axles/>
         <Properties>
           <Property name="type" value="npc_vehicle"/>
         </Properties>
@@ -56,12 +47,11 @@
   <Storyboard>
     <Init>
       <Actions>
-        <!-- Ego 차량 초기 위치 및 컨트롤러 할당 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -74,20 +64,15 @@
                   </Properties>
                 </Controller>
               </AssignControllerAction>
-              <OverrideControllerValueAction>
-                <Throttle value="0" active="false"/>
-                <Brake value="0" active="false"/>
-              </OverrideControllerValueAction>
             </ControllerAction>
           </PrivateAction>
         </Private>
 
-        <!-- 전방 차량 위치 설정 -->
         <Private entityRef="vehicleA">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$targetXinitposition" y="$targetYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="$targetXinitposition" y="$egoYinitposition" z="$ego_height"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -95,21 +80,21 @@
       </Actions>
     </Init>
 
-    <Story name="AEB_Alert_Mode_Story">
-      <Act name="AEBAlertAct">
-        <ManeuverGroup name="VehicleMotionGroup" maximumExecutionCount="1">
+    <Story name="AEB_Inactive_Story">
+      <Act name="TargetVehicleAct">
+        <ManeuverGroup name="TargetGroup" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="vehicleA"/>
           </Actors>
-          <Maneuver name="MaintainConstantSpeed">
-            <Event name="SetTargetSpeed10ms" priority="overwrite">
-              <Action name="SetSpeed10">
+          <Maneuver name="RunFasterVehicle">
+            <Event name="VehicleAFaster" priority="overwrite">
+              <Action name="MoveAt25ms">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="step" value="1" dynamicsDimension="time"/>
+                      <SpeedActionDynamics dynamicsShape="step" value="0" dynamicsDimension="time"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="10.0"/>
+                        <AbsoluteTargetSpeed value="25.0"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -117,9 +102,9 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartSpeedSet" delay="0" conditionEdge="rising">
+                  <Condition name="Trigger" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="0.2" rule="greaterThan"/>
+                      <SimulationTimeCondition value="0.5" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -127,24 +112,14 @@
             </Event>
           </Maneuver>
         </ManeuverGroup>
-
-        <StartTrigger>
-          <ConditionGroup>
-            <Condition name="StartStoryTrigger" delay="0" conditionEdge="rising">
-              <ByValueCondition>
-                <SimulationTimeCondition value="0.1" rule="greaterThan"/>
-              </ByValueCondition>
-            </Condition>
-          </ConditionGroup>
-        </StartTrigger>
       </Act>
     </Story>
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndScenarioAfter6s" delay="0" conditionEdge="rising">
+        <Condition name="EndAfter6s" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="6" rule="greaterThan"/>
+            <SimulationTimeCondition value="6.0" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

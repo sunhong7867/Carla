@@ -1,14 +1,15 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="AEB_S005: Cut-in 차량 타겟 전환 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="AEB_S007: 복수 타겟 중 위험한 목표 우선 전환" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="A_Xinitposition" parameterType="double" value="40.0"/>
-    <ParameterDeclaration name="B_Xinitposition" parameterType="double" value="35.0"/>
-    <ParameterDeclaration name="A_Yinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="B_Yinitposition" parameterType="double" value="3.5"/>
-    <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="targetA_Xinitposition" parameterType="double" value="45.0"/>
+    <ParameterDeclaration name="targetA_Yinitposition" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="targetB_Xinitposition" parameterType="double" value="40.0"/>
+    <ParameterDeclaration name="targetB_Yinitposition" parameterType="double" value="3.5"/>
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28.0"/>
   </ParameterDeclarations>
 
   <RoadNetwork>
@@ -17,6 +18,7 @@
   </RoadNetwork>
 
   <Entities>
+    <!-- Ego Vehicle -->
     <ScenarioObject name="hero">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
         <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
@@ -24,44 +26,31 @@
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
+        <Axles/>
         <Properties>
           <Property name="type" value="ego_vehicle"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
 
+    <!-- Front vehicle A -->
     <ScenarioObject name="vehicleA">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
-        <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9"/>
-          <Dimensions width="2.1" length="4.5" height="1.8"/>
-        </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
+        <Performance maxSpeed="69.444" maxAcceleration="5.0" maxDeceleration="8.0"/>
+        <BoundingBox/>
+        <Axles/>
         <Properties>
           <Property name="type" value="npc_vehicle"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
 
+    <!-- Cut-in vehicle B -->
     <ScenarioObject name="vehicleB">
-      <Vehicle name="vehicle.pass.black.audi" vehicleCategory="car">
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
-        <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9"/>
-          <Dimensions width="2.1" length="4.5" height="1.8"/>
-        </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="5.0" maxDeceleration="8.0"/>
+        <BoundingBox/>
+        <Axles/>
         <Properties>
           <Property name="type" value="npc_vehicle"/>
         </Properties>
@@ -72,11 +61,12 @@
   <Storyboard>
     <Init>
       <Actions>
+        <!-- Ego 초기 위치 및 제어 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$egoXinitposition" y="$A_Yinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -89,19 +79,16 @@
                   </Properties>
                 </Controller>
               </AssignControllerAction>
-              <OverrideControllerValueAction>
-                <Throttle value="0" active="false"/>
-                <Brake value="0" active="false"/>
-              </OverrideControllerValueAction>
             </ControllerAction>
           </PrivateAction>
         </Private>
 
+        <!-- 정면 차량 A 위치 및 속도 설정 -->
         <Private entityRef="vehicleA">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$A_Xinitposition" y="$A_Yinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="$targetA_Xinitposition" y="$targetA_Yinitposition" z="$ego_height"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -110,18 +97,19 @@
               <SpeedAction>
                 <SpeedActionDynamics dynamicsShape="step" value="1.0" dynamicsDimension="time"/>
                 <SpeedActionTarget>
-                  <AbsoluteTargetSpeed value="15.0"/>
+                  <AbsoluteTargetSpeed value="20.0"/>
                 </SpeedActionTarget>
               </SpeedAction>
             </LongitudinalAction>
           </PrivateAction>
         </Private>
 
+        <!-- Cut-in 차량 B 위치 설정 -->
         <Private entityRef="vehicleB">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$B_Xinitposition" y="$B_Yinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="$targetB_Xinitposition" y="$targetB_Yinitposition" z="$ego_height"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -129,15 +117,15 @@
       </Actions>
     </Init>
 
-    <Story name="AEB_CutIn_Story">
-      <Act name="CutInAct">
-        <ManeuverGroup name="CutInVehicles" maximumExecutionCount="1">
+    <Story name="AEB_Target_Switch_Story">
+      <Act name="Act_CutinVsFrontal">
+        <ManeuverGroup name="CutinGroup" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="vehicleB"/>
           </Actors>
-          <Maneuver name="CutInScenario">
-            <Event name="CutinEvent" priority="overwrite">
-              <Action name="CutinRoute">
+          <Maneuver name="CutinManeuver">
+            <Event name="StartCutin" priority="overwrite">
+              <Action name="CutinB_Move">
                 <PrivateAction>
                   <RoutingAction>
                     <AssignRouteAction>
@@ -154,9 +142,9 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartCutin" delay="0" conditionEdge="rising">
+                  <Condition name="StartCutinTrigger" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="1.5" rule="greaterThan"/>
+                      <SimulationTimeCondition value="2.0" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>

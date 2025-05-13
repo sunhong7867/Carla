@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="AEB_S005: Cut-in 차량 타겟 전환 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="ACC_S006: Cut-in 차량 타겟 전환 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="A_Xinitposition" parameterType="double" value="40.0"/>
-    <ParameterDeclaration name="B_Xinitposition" parameterType="double" value="35.0"/>
+    <ParameterDeclaration name="A_Xinitposition" parameterType="double" value="50.0"/>
+    <ParameterDeclaration name="B_Xinitposition" parameterType="double" value="45.0"/>
     <ParameterDeclaration name="A_Yinitposition" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="B_Yinitposition" parameterType="double" value="3.5"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
@@ -52,7 +52,7 @@
     </ScenarioObject>
 
     <ScenarioObject name="vehicleB">
-      <Vehicle name="vehicle.pass.black.audi" vehicleCategory="car">
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
         <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
@@ -105,16 +105,6 @@
               </Position>
             </TeleportAction>
           </PrivateAction>
-          <PrivateAction>
-            <LongitudinalAction>
-              <SpeedAction>
-                <SpeedActionDynamics dynamicsShape="step" value="1.0" dynamicsDimension="time"/>
-                <SpeedActionTarget>
-                  <AbsoluteTargetSpeed value="15.0"/>
-                </SpeedActionTarget>
-              </SpeedAction>
-            </LongitudinalAction>
-          </PrivateAction>
         </Private>
 
         <Private entityRef="vehicleB">
@@ -129,22 +119,49 @@
       </Actions>
     </Init>
 
-    <Story name="AEB_CutIn_Story">
-      <Act name="CutInAct">
-        <ManeuverGroup name="CutInVehicles" maximumExecutionCount="1">
+    <Story name="ACC_Cutin_Story">
+      <Act name="CutinAct">
+        <ManeuverGroup name="CutinVehicles" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="vehicleA"/>
             <EntityRef entityRef="vehicleB"/>
           </Actors>
-          <Maneuver name="CutInScenario">
-            <Event name="CutinEvent" priority="overwrite">
-              <Action name="CutinRoute">
+          <Maneuver name="CutinScenario">
+            <!-- Vehicle A: 정면 차량 계속 주행 -->
+            <Event name="VehicleA_Forward" priority="overwrite">
+              <Action name="Maintain13ms">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="step" value="30" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="13.0"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartA" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0.1" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <!-- Vehicle B: Cut-in 차량 - 우측 차선에서 진입 -->
+            <Event name="VehicleB_Cutin" priority="overwrite">
+              <Action name="LaneChangeAndSpeed">
                 <PrivateAction>
                   <RoutingAction>
                     <AssignRouteAction>
                       <Route>
                         <Waypoint>
                           <Position>
-                            <WorldPosition x="100.0" y="0.0" z="$ego_height"/>
+                            <WorldPosition x="100.0" y="0.0" z="$ego_height" h="0" p="0" r="0"/>
                           </Position>
                         </Waypoint>
                       </Route>
@@ -164,6 +181,16 @@
             </Event>
           </Maneuver>
         </ManeuverGroup>
+
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition name="StartAct" delay="0" conditionEdge="rising">
+              <ByValueCondition>
+                <SimulationTimeCondition value="0.1" rule="greaterThan"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
       </Act>
     </Story>
 
@@ -171,7 +198,7 @@
       <ConditionGroup>
         <Condition name="EndAfter10s" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="10.0" rule="greaterThan"/>
+            <SimulationTimeCondition value="10" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

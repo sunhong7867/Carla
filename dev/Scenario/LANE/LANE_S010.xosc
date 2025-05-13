@@ -1,27 +1,38 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="ACC_S004: 커브 구간 감속 모드 전환 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-12" description="LANE_S010: 3차선 도로에서 차선 판단 기능 검증 시나리오" author="JSH"/>
+
   <ParameterDeclarations>
-    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="ego_height" parameterType="double" value="28.0"/>
+    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
   </ParameterDeclarations>
+
   <RoadNetwork>
     <LogicFile filepath="Map1"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
+
   <Entities>
     <ScenarioObject name="hero">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
         <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
-        <BoundingBox/>
-        <Axles/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
         <Properties>
           <Property name="type" value="ego_vehicle"/>
+          <Property name="lane_behavior_module" value="lane_selection"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
   </Entities>
+
   <Storyboard>
     <Init>
       <Actions>
@@ -33,43 +44,38 @@
               </Position>
             </TeleportAction>
           </PrivateAction>
+
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
-                <Controller name="HeroAgent">
+                <Controller name="LaneSelectionController">
                   <Properties>
-                    <Property name="module" value="autonomous_driving_system"/>
+                    <Property name="module" value="lane_selection"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
-              <OverrideControllerValueAction>
-                <Throttle value="0" active="false"/>
-                <Brake value="0" active="false"/>
-                <Clutch value="0" active="false"/>
-                <ParkingBrake value="0" active="false"/>
-                <SteeringWheel value="0" active="false"/>
-                <Gear number="0" active="false"/>
-              </OverrideControllerValueAction>
             </ControllerAction>
           </PrivateAction>
         </Private>
       </Actions>
     </Init>
-    <Story name="ACC_CurveSpeedReduction">
-      <Act name="MainAct">
-        <ManeuverGroup name="EgoGroup" maximumExecutionCount="1">
+
+    <Story name="LANE_S010_ThreeLaneJudgment">
+      <Act name="ThreeLaneAct">
+        <ManeuverGroup name="ThreeLaneGroup" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="MaintainSpeed">
-            <Event name="StartCruise" priority="overwrite">
-              <Action name="CruiseAt22">
+          <Maneuver name="MaintainCenterLane">
+
+            <Event name="StartCenterLaneDriving" priority="overwrite">
+              <Action name="DriveCenterLane">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="30" dynamicsDimension="time"/>
+                      <SpeedActionDynamics dynamicsShape="linear" value="5.0" dynamicsDimension="time"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="22.22"/>
+                        <AbsoluteTargetSpeed value="5.0"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -77,32 +83,35 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartNow" delay="0" conditionEdge="rising">
+                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                      <SimulationTimeCondition value="0.0" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
               </StartTrigger>
             </Event>
+
           </Maneuver>
         </ManeuverGroup>
+
         <StartTrigger>
           <ConditionGroup>
             <Condition name="ActStart" delay="0" conditionEdge="rising">
               <ByValueCondition>
-                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                <SimulationTimeCondition value="0.0" rule="greaterThan"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
         </StartTrigger>
       </Act>
     </Story>
+
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="StopAfter15s" delay="0" conditionEdge="rising">
+        <Condition name="EndScenario" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="15" rule="greaterThan"/>
+            <SimulationTimeCondition value="10.0" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

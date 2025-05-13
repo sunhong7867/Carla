@@ -1,11 +1,10 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="ACC_S005: 정지 및 재출발 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-12" description="LANE_S005: 차선 중심선 벗어남에 따른 차선 내 위치 판단 검증 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
-    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="npcXinitposition" parameterType="double" value="40.0"/>
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
   </ParameterDeclarations>
 
@@ -33,28 +32,25 @@
         </Properties>
       </Vehicle>
     </ScenarioObject>
-
-    <ScenarioObject name="npc">
-      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
-        <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9"/>
-          <Dimensions width="2.1" length="4.5" height="1.8"/>
-        </BoundingBox>
-        <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
-        </Axles>
-        <Properties>
-          <Property name="type" value="npc_vehicle"/>
-        </Properties>
-      </Vehicle>
-    </ScenarioObject>
   </Entities>
 
   <Storyboard>
     <Init>
       <Actions>
+        <GlobalAction>
+          <EnvironmentAction>
+            <Environment name="ClearDay">
+              <TimeOfDay animation="true" dateTime="2025-05-12T12:00:00"/>
+              <Weather cloudState="free">
+                <Sun intensity="10000" azimuth="0" elevation="1.57"/>
+                <Fog visualRange="10000.0"/>
+                <Precipitation precipitationType="dry" intensity="0.0"/>
+              </Weather>
+              <RoadCondition frictionScaleFactor="1.0"/>
+            </Environment>
+          </EnvironmentAction>
+        </GlobalAction>
+
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
@@ -63,12 +59,15 @@
               </Position>
             </TeleportAction>
           </PrivateAction>
+
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
                 <Controller name="HeroAgent">
                   <Properties>
                     <Property name="module" value="autonomous_driving_system"/>
+                    <Property name="lane_width_override" value="3.5"/>
+                    <Property name="lane_offset_override" value="0.0"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
@@ -83,42 +82,29 @@
             </ControllerAction>
           </PrivateAction>
         </Private>
-
-        <Private entityRef="npc">
-          <PrivateAction>
-            <TeleportAction>
-              <Position>
-                <WorldPosition x="$npcXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
-              </Position>
-            </TeleportAction>
-          </PrivateAction>
-        </Private>
       </Actions>
     </Init>
 
-    <Story name="ACC_Stop_And_Go">
-      <Act name="MainAct">
-        <ManeuverGroup name="NPCGroup" maximumExecutionCount="1">
+    <Story name="LANE_S005_OffsetTransition">
+      <Act name="OffsetChangeAct">
+        <ManeuverGroup name="OffsetChangeGroup" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
-            <EntityRef entityRef="npc"/>
+            <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="NPCBehavior">
-            <Event name="DriveThenStopThenGo" priority="overwrite">
-              <Action name="Start">
+          <Maneuver name="OffsetStep">
+            <Event name="Step1" priority="overwrite">
+              <Action name="Offset0.0">
                 <PrivateAction>
-                  <LongitudinalAction>
-                    <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="1.0" dynamicsDimension="time"/>
-                      <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="13.0"/>
-                      </SpeedActionTarget>
-                    </SpeedAction>
-                  </LongitudinalAction>
+                  <ControllerAction>
+                    <OverrideControllerValueAction>
+                      <Property name="lane_offset_override" value="0.0"/>
+                    </OverrideControllerValueAction>
+                  </ControllerAction>
                 </PrivateAction>
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="startNow" delay="0" conditionEdge="rising">
+                  <Condition name="StartNow" delay="0" conditionEdge="rising">
                     <ByValueCondition>
                       <SimulationTimeCondition value="0" rule="greaterThan"/>
                     </ByValueCondition>
@@ -127,48 +113,63 @@
               </StartTrigger>
             </Event>
 
-            <Event name="StopNPC" priority="overwrite">
-              <Action name="Brake">
+            <Event name="Step2" priority="overwrite">
+              <Action name="Offset1.4">
                 <PrivateAction>
-                  <LongitudinalAction>
-                    <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="1.0" dynamicsDimension="time"/>
-                      <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="0.0"/>
-                      </SpeedActionTarget>
-                    </SpeedAction>
-                  </LongitudinalAction>
+                  <ControllerAction>
+                    <OverrideControllerValueAction>
+                      <Property name="lane_offset_override" value="1.4"/>
+                    </OverrideControllerValueAction>
+                  </ControllerAction>
                 </PrivateAction>
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="stopTrigger" delay="0" conditionEdge="rising">
+                  <Condition name="TimeReached" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="2.0" rule="greaterThan"/>
+                      <SimulationTimeCondition value="2" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
               </StartTrigger>
             </Event>
 
-            <Event name="RestartNPC" priority="overwrite">
-              <Action name="GoAgain">
+            <Event name="Step3" priority="overwrite">
+              <Action name="Offset1.75">
                 <PrivateAction>
-                  <LongitudinalAction>
-                    <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="step" value="30" dynamicsDimension="time"/>
-                      <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="13.0"/>
-                      </SpeedActionTarget>
-                    </SpeedAction>
-                  </LongitudinalAction>
+                  <ControllerAction>
+                    <OverrideControllerValueAction>
+                      <Property name="lane_offset_override" value="1.75"/>
+                    </OverrideControllerValueAction>
+                  </ControllerAction>
                 </PrivateAction>
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="restartTrigger" delay="0" conditionEdge="rising">
+                  <Condition name="TimeReached" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="4.0" rule="greaterThan"/>
+                      <SimulationTimeCondition value="4" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Step4" priority="overwrite">
+              <Action name="Offset-1.8">
+                <PrivateAction>
+                  <ControllerAction>
+                    <OverrideControllerValueAction>
+                      <Property name="lane_offset_override" value="-1.8"/>
+                    </OverrideControllerValueAction>
+                  </ControllerAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="TimeReached" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="6" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -179,7 +180,7 @@
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="actStart" delay="0" conditionEdge="rising">
+            <Condition name="ActStart" delay="0" conditionEdge="rising">
               <ByValueCondition>
                 <SimulationTimeCondition value="0" rule="greaterThan"/>
               </ByValueCondition>
@@ -191,9 +192,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="endCondition" delay="0" conditionEdge="rising">
+        <Condition name="EndScenario" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="20" rule="greaterThan"/>
+            <SimulationTimeCondition value="8" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

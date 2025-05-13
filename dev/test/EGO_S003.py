@@ -1,8 +1,8 @@
 # === Debugging Print for EGO_S003 ===
 print("======================================")
+print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
 print(f"[DEBUG][S0] time = {self.current_time_ms:.1f} ms")
 
-# Step 1: GPS 무효 상태 확인 (지연 여부)
 gps_dt = abs(self.current_time_ms - self.gps_data.timestamp)
 print(f"[DEBUG][S1] gps_dt = {gps_dt:.1f} ms → {'FAIL' if gps_dt <= 50.0 else 'OK'}")
 
