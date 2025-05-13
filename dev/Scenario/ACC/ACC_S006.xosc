@@ -1,0 +1,207 @@
+<?xml version="1.0"?>
+<OpenSCENARIO>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="ACC_S006: Cut-in 차량 타겟 전환 시나리오" author="JSH"/>
+
+  <ParameterDeclarations>
+    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="A_Xinitposition" parameterType="double" value="50.0"/>
+    <ParameterDeclaration name="B_Xinitposition" parameterType="double" value="45.0"/>
+    <ParameterDeclaration name="A_Yinitposition" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="B_Yinitposition" parameterType="double" value="3.5"/>
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
+  </ParameterDeclarations>
+
+  <RoadNetwork>
+    <LogicFile filepath="Map1"/>
+    <SceneGraphFile filepath=""/>
+  </RoadNetwork>
+
+  <Entities>
+    <ScenarioObject name="hero">
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="ego_vehicle"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+
+    <ScenarioObject name="vehicleA">
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="npc_vehicle"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+
+    <ScenarioObject name="vehicleB">
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="npc_vehicle"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+  </Entities>
+
+  <Storyboard>
+    <Init>
+      <Actions>
+        <Private entityRef="hero">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="$egoXinitposition" y="$A_Yinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+          <PrivateAction>
+            <ControllerAction>
+              <AssignControllerAction>
+                <Controller name="HeroAgent">
+                  <Properties>
+                    <Property name="module" value="autonomous_driving_system"/>
+                  </Properties>
+                </Controller>
+              </AssignControllerAction>
+              <OverrideControllerValueAction>
+                <Throttle value="0" active="false"/>
+                <Brake value="0" active="false"/>
+              </OverrideControllerValueAction>
+            </ControllerAction>
+          </PrivateAction>
+        </Private>
+
+        <Private entityRef="vehicleA">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="$A_Xinitposition" y="$A_Yinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+        </Private>
+
+        <Private entityRef="vehicleB">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="$B_Xinitposition" y="$B_Yinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+        </Private>
+      </Actions>
+    </Init>
+
+    <Story name="ACC_Cutin_Story">
+      <Act name="CutinAct">
+        <ManeuverGroup name="CutinVehicles" maximumExecutionCount="1">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="vehicleA"/>
+            <EntityRef entityRef="vehicleB"/>
+          </Actors>
+          <Maneuver name="CutinScenario">
+            <!-- Vehicle A: 정면 차량 계속 주행 -->
+            <Event name="VehicleA_Forward" priority="overwrite">
+              <Action name="Maintain13ms">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="step" value="30" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="13.0"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartA" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0.1" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <!-- Vehicle B: Cut-in 차량 - 우측 차선에서 진입 -->
+            <Event name="VehicleB_Cutin" priority="overwrite">
+              <Action name="LaneChangeAndSpeed">
+                <PrivateAction>
+                  <RoutingAction>
+                    <AssignRouteAction>
+                      <Route>
+                        <Waypoint>
+                          <Position>
+                            <WorldPosition x="100.0" y="0.0" z="$ego_height" h="0" p="0" r="0"/>
+                          </Position>
+                        </Waypoint>
+                      </Route>
+                    </AssignRouteAction>
+                  </RoutingAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartCutin" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="1.5" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition name="StartAct" delay="0" conditionEdge="rising">
+              <ByValueCondition>
+                <SimulationTimeCondition value="0.1" rule="greaterThan"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
+      </Act>
+    </Story>
+
+    <StopTrigger>
+      <ConditionGroup>
+        <Condition name="EndAfter10s" delay="0" conditionEdge="rising">
+          <ByValueCondition>
+            <SimulationTimeCondition value="10" rule="greaterThan"/>
+          </ByValueCondition>
+        </Condition>
+      </ConditionGroup>
+    </StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>

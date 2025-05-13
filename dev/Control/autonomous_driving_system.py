@@ -162,6 +162,7 @@ class AutonomousDrivingSystem(BasicControl):
         self._update_spectator()
 
         # === Debugging Print ===
+<<<<<<< HEAD
         print("======================================")
         print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
         print(f"[ACC] Mode: {acc_mode.name} | ACC Accel: {acc_accel:.2f} m/s²")
@@ -175,6 +176,16 @@ class AutonomousDrivingSystem(BasicControl):
         #            f"  F{i}: ID={obj.object_id}, dist={obj.distance:.2f}, status={obj.status.name}, cell={obj.cell_id}")
         #print(f"[Predicted] {len(predicted)} objects")
         #print(f"[ACC Target] ID={acc_target.object_id}, Dist={acc_target.distance:.2f}, Mode={acc_mode.name}, Accel={acc_accel:.2f}")
+=======
+        # 기준 좌표 변환
+        ego_tf = self._actor.get_transform()
+        ego_loc = ego_tf.location
+        front_offset_x = 1.5  # 차량 앞바퀴 중심 오프셋 (예시값)
+        ref_x = ego_loc.x - front_offset_x
+        ref_y = ego_loc.y
+        print(f"[STEP2] ego.get_location() = ({ego_loc.x:.2f}, {ego_loc.y:.2f}) → 기준점 변환 후 ({ref_x:.2f}, {ref_y:.2f})")
+
+>>>>>>> develop
 
     def reset(self):
         if hasattr(self, "_imu_sensor"):

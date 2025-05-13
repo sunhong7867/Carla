@@ -1,0 +1,215 @@
+<?xml version="1.0"?>
+<OpenSCENARIO>
+<<<<<<< HEAD:dev/Scenario/ACC_S001.xosc
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-11" description="ACC_S001: 전방 차량 없음, ADAS ACC 목표 속도 유지 시나리오" author="JSH"/>
+=======
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-11" description="EGO_S001: Ego 차량 좌표 기준 고정 및 앞바퀴 중심 기준 검증 시나리오" author="JSH"/>
+>>>>>>> develop:dev/Scenario/EGO/EGO_S001.xosc
+
+  <ParameterDeclarations>
+    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
+    <ParameterDeclaration name="weather_condition" parameterType="string" value="rain"/>
+    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="1.0"/>
+    <ParameterDeclaration name="cloud_State" parameterType="string" value="free"/>
+    <ParameterDeclaration name="fog_range" parameterType="double" value="100.0"/>
+  </ParameterDeclarations>
+
+  <CatalogLocations/>
+
+  <RoadNetwork>
+    <LogicFile filepath="Map1"/>
+    <SceneGraphFile filepath=""/>
+  </RoadNetwork>
+
+  <Entities>
+    <ScenarioObject name="hero">
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="ego_vehicle"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+<<<<<<< HEAD:dev/Scenario/ACC_S001.xosc
+=======
+
+    <ScenarioObject name="target">
+      <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
+        <Performance maxSpeed="0" maxAcceleration="0.0" maxDeceleration="0.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="static"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+>>>>>>> develop:dev/Scenario/EGO/EGO_S001.xosc
+  </Entities>
+
+  <Storyboard>
+    <Init>
+      <Actions>
+        <GlobalAction>
+          <EnvironmentAction>
+<<<<<<< HEAD:dev/Scenario/ACC_S001.xosc
+            <Environment name="Environment1">
+              <TimeOfDay animation="true" dateTime="2022-10-01T12:00:00"/>
+              <Weather cloudState="$cloud_State">
+                <Sun intensity="10000" azimuth="0" elevation="1.57"/>
+                <Fog visualRange="10000.0"/>
+                <Precipitation precipitationType="$weather_condition" intensity="$precipitationType_intensity"/>
+=======
+            <Environment name="DryClearDay">
+              <TimeOfDay animation="true" dateTime="2025-05-11T12:00:00"/>
+              <Weather cloudState="free">
+                <Sun intensity="10000" azimuth="0" elevation="1.57"/>
+                <Fog visualRange="10000.0"/>
+                <Precipitation precipitationType="dry" intensity="0.0"/>
+>>>>>>> develop:dev/Scenario/EGO/EGO_S001.xosc
+              </Weather>
+              <RoadCondition frictionScaleFactor="1.0"/>
+            </Environment>
+          </EnvironmentAction>
+        </GlobalAction>
+
+        <Private entityRef="hero">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+
+          <PrivateAction>
+            <ControllerAction>
+              <AssignControllerAction>
+                <Controller name="HeroAgent">
+                  <Properties>
+                    <Property name="module" value="autonomous_driving_system"/>
+                  </Properties>
+                </Controller>
+              </AssignControllerAction>
+              <OverrideControllerValueAction>
+                <Throttle value="0" active="false"/>
+                <Brake value="0" active="false"/>
+                <Clutch value="0" active="false"/>
+                <ParkingBrake value="0" active="false"/>
+                <SteeringWheel value="0" active="false"/>
+                <Gear number="0" active="false"/>
+              </OverrideControllerValueAction>
+            </ControllerAction>
+          </PrivateAction>
+        </Private>
+<<<<<<< HEAD:dev/Scenario/ACC_S001.xosc
+      </Actions>
+    </Init>
+
+    <Story name="ACC_TargetSpeed">
+      <Act name="MaintainSpeed">
+        <ManeuverGroup maximumExecutionCount="1" name="ACC_MG">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="hero"/>
+          </Actors>
+          <Maneuver name="ACC_Idle">
+            <Event name="ACC_Trigger" priority="overwrite">
+              <Action name="NoAction">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="30" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="0.0"/>
+=======
+
+        <Private entityRef="target">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="50.0" y="3.5" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+        </Private>
+      </Actions>
+    </Init>
+
+    <Story name="EGO_Coordinate_Validation_Story">
+      <Act name="EGO_MainAct">
+        <ManeuverGroup name="EGOGroup" maximumExecutionCount="1">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="hero"/>
+          </Actors>
+          <Maneuver name="IdleManeuver">
+            <Event name="StartDriving" priority="overwrite">
+              <Action name="MaintainSpeed">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="10" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="5.0"/>
+>>>>>>> develop:dev/Scenario/EGO/EGO_S001.xosc
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartNow" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition name="ActStart" delay="0" conditionEdge="rising">
+              <ByValueCondition>
+                <SimulationTimeCondition value="0" rule="greaterThan"/>
+              </ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
+      </Act>
+    </Story>
+
+    <StopTrigger>
+      <ConditionGroup>
+<<<<<<< HEAD:dev/Scenario/ACC_S001.xosc
+        <Condition name="EndScenario" delay="1" conditionEdge="rising">
+          <ByValueCondition>
+            <SimulationTimeCondition value="30" rule="greaterThan"/>
+=======
+        <Condition name="EndScenario" delay="0" conditionEdge="rising">
+          <ByValueCondition>
+            <SimulationTimeCondition value="15" rule="greaterThan"/>
+>>>>>>> develop:dev/Scenario/EGO/EGO_S001.xosc
+          </ByValueCondition>
+        </Condition>
+      </ConditionGroup>
+    </StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>

@@ -1,5 +1,9 @@
 import numpy as np
+<<<<<<< HEAD
 from shared_types import TimeData, GPSData, IMUData, EgoData, EgoVehicleKFState
+=======
+from decision.shared_types import TimeData, GPSData, IMUData, EgoData, EgoVehicleKFState
+>>>>>>> develop
 
 # ───────────── 상수 정의 ─────────────
 GPS_VALID_TIME_MS = 50.0
