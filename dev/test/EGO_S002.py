@@ -1,18 +1,31 @@
-# Step 0: 센서 수신 확인
-print("======================================")
-print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
-print(f"[DEBUG][S0] time={self.current_time_ms:.1f}ms gps_ts = {self.gps_data.timestamp:.1f} ms, imu = ({self.imu_data.accel_x:.2f}, {self.imu_data.accel_y:.2f})")
+# Step 1
+ego_velocity = ego_data.velocity_x
+velocity_error = abs(ego_velocity - 15.0)
+elapsed_sec = int((self.current_time_ms - self.start_time_ms) // 1000)
 
-# Step 1: 추정 속도 vs 목표 속도
-speed_error_target = abs(ego_data.velocity_x - 15.0)
-print(f"[DEBUG][S1] Velocity = {ego_data.velocity_x:.2f} m/s, Target = 15.00 m/s, Error = {speed_error_target:.2f} m/s → {'OK' if speed_error_target <= 1.0 else 'FAIL'}")
+if velocity_error <= 5.0:
+    print(f"[STEP1][{elapsed_sec} sec] velocity = {ego_velocity:.2f} m/s → Pass")
+else:
+    print(f"[STEP1][{elapsed_sec} sec] velocity = {ego_velocity:.2f} m/s → Fail")
 
-# Step 2: GPS 수신 간격 확인
+
+
+# Step 2
+elapsed_sec = int((self.current_time_ms - self.start_time_ms) // 1000)
 gps_dt = abs(self.current_time_ms - self.gps_data.timestamp)
-print(f"[DEBUG][S2] gps_dt = {gps_dt:.1f} ms → {'OK' if gps_dt <= 50.0 else 'FAIL'}")
+if gps_dt <= 50.0:
+     print(f"[STEP2][{elapsed_sec} sec] GPS 수신 시각 지연 = {gps_dt:.1f} ms → Pass")
+else:
+     print(f"[STEP2][{elapsed_sec} sec] GPS 수신 시각 지연 = {gps_dt:.1f} ms → Fail")
 
-# Step 3: Ground Truth와 비교
-gt_vel = self._actor.get_velocity()
-gt_speed = math.hypot(gt_vel.x, gt_vel.y)
-speed_error_gt = abs(ego_data.velocity_x - gt_speed)
-print(f"[DEBUG][S3] EstimatedVelocity = {ego_data.velocity_x:.2f} m/s, GroundTruthVelocity = {gt_speed:.2f} m/s, Error = {speed_error_gt:.2f} m/s → {'OK' if speed_error_gt <= 1.0 else 'FAIL'}")
+
+# Step 3
+elapsed_sec = int((self.current_time_ms - self.start_time_ms) // 1000)
+estimated_vx = ego_data.velocity_x
+groundtruth_vx = self._actor.get_velocity().x
+velocity_error = abs(estimated_vx - groundtruth_vx)
+if velocity_error <= 5.0:
+    print(f"[STEP3] [{elapsed_sec} sec] 추정 속도 오차 = {velocity_error:.2f} m/s → Pass")
+else:
+    print(f"[STEP3] [{elapsed_sec} sec] 추정 속도 오차 = {velocity_error:.2f} m/s → Fail")
+

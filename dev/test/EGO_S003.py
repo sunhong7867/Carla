@@ -1,24 +1,13 @@
-# === Debugging Print for EGO_S003 ===
-print("======================================")
-print(f"[EGO] Velocity: {ego_data.velocity_x:.2f} m/s | Accel: {ego_data.accel_x:.2f} m/s² | Heading: {ego_data.heading:.2f}°")
-print(f"[DEBUG][S0] time = {self.current_time_ms:.1f} ms")
-
+elapsed_sec = int((self.current_time_ms - self.start_time_ms) // 1000)
 gps_dt = abs(self.current_time_ms - self.gps_data.timestamp)
-print(f"[DEBUG][S1] gps_dt = {gps_dt:.1f} ms → {'FAIL' if gps_dt <= 50.0 else 'OK'}")
+gt_vel = self._actor.get_velocity().x
+vel_err = abs(gt_vel - ego_data.velocity_x)
+imu_valid = abs(self.imu_data.accel_x) < 9.8
+gps_valid = gps_dt <= 50.0
 
-# Step 2: Kalman 필터 업데이트 비활성 여부 (직접 변수 없음 → Step 1으로 간접 판단)
-# 추가 조건이 없으므로 생략 가능
-
-# Step 3: 속도 추정 연속성 확인 (이전 추정값과 비교)
-if hasattr(self, "prev_est_vel_x"):
-    d_est_vel = abs(ego_data.velocity_x - self.prev_est_vel_x)
-    print(f"[DEBUG][S2] ΔEstimatedVelocity = {d_est_vel:.3f} m/s → {'OK' if d_est_vel < 2.0 else 'FAIL'}")
-else:
-    print("[DEBUG][S2] ΔEstimatedVelocity = --- (초기 프레임)")
-self.prev_est_vel_x = ego_data.velocity_x
-
-# Step 4: Kalman 추정값과 Ground Truth 비교
-gt_vel = self._actor.get_velocity()
-gt_speed = math.hypot(gt_vel.x, gt_vel.y)
-error_speed = abs(ego_data.velocity_x - gt_speed)
-print(f"[DEBUG][S3] EstimatedVelocity = {ego_data.velocity_x:.2f} m/s, GroundTruthVelocity = {gt_speed:.2f} m/s, Error = {error_speed:.2f} m/s → {'OK' if error_speed <= 2.0 else 'FAIL'}")
+print(f"[STEP1][{elapsed_sec} sec] 정속 주행 확인 → Velocity = {ego_data.velocity_x:.2f} m/s")
+print(f"[STEP2][{elapsed_sec} sec] GPS 수신 지연 = {gps_dt:.1f} ms, gps_update_enabled = {self.kf_state.gps_update_enabled}")
+print(f"[STEP3][{elapsed_sec} sec] Filtered_Accel_X = {self.kf_state.prev_accel_x:.2f}, Filtered_Yaw_Rate = {self.kf_state.prev_yaw_rate:.2f}")
+print(f"[STEP4][{elapsed_sec} sec] Ego_Velocity_X = {ego_data.velocity_x:.2f}, Ego_Acceleration_X = {ego_data.accel_x:.2f}")
+print(f"[STEP5][{elapsed_sec} sec] GPS valid: {gps_valid}, IMU valid: {imu_valid}")
+print(f"[STEP6][{elapsed_sec} sec] Ego_Velocity_X = {ego_data.velocity_x:.2f}, GroundTruth = {gt_vel:.2f}, Error = {vel_err:.2f}")

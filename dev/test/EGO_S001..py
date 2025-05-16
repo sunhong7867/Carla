@@ -1,15 +1,26 @@
-print(    f"[STEP1] Ego_Position = ({ego_data.position_x:.2f}, {ego_data.position_y:.2f}, {ego_data.position_z:.2f}) → 기준 (0.00, 0.00, 0.00)")
+# Step 1
+print(f"[STEP1] Ego_Position = ({ego_data.position_x:.2f}, {ego_data.position_y:.2f}, {ego_data.position_z:.2f}) → 기준 (0.00, 0.00, 0.00)")
 
-
-# 기준 좌표 변환
+# Step 2
+# === Ego 차량 Transform 및 위치 ===
 ego_tf = self._actor.get_transform()
 ego_loc = ego_tf.location
-front_offset_x = 1.5  # 차량 앞바퀴 중심 오프셋 (예시값)
-ref_x = ego_loc.x - front_offset_x
-ref_y = ego_loc.y
-print(f"[STEP2] ego.get_location() = ({ego_loc.x:.2f}, {ego_loc.y:.2f}) → 기준점 변환 후 ({ref_x:.2f}, {ref_y:.2f})")
+front_offset_x = 1.5  # 차량 앞바퀴 기준 오프셋
+
+# Carla 상의 절대 위치 (기준: 차량의 중심 위치)
+carla_loc = ego_loc
+
+# Ego 차량 기준 좌표계로 변환 (기준: 앞바퀴 기준)
+ego_ref_x = ego_loc.x - front_offset_x
+ego_ref_y = ego_loc.y
+loc_x = ego_loc.x - front_offset_x - ego_ref_x  # = 0
+loc_y = ego_loc.y - ego_ref_y                   # = 0
+
+# === 디버깅 출력 ===
+print(f"[DEBUG][STEP2] Carla 절대 위치 = ({carla_loc.x:.2f}, {carla_loc.y:.2f}) | Ego 기준 위치 = ({loc_x:.2f}, {loc_y:.2f})")
 
 
+# Step 3
 if hasattr(self, "prev_ego_position"):
     dx = abs(ego_data.position_x - self.prev_ego_position[0])
     dy = abs(ego_data.position_y - self.prev_ego_position[1])
@@ -17,6 +28,7 @@ if hasattr(self, "prev_ego_position"):
 self.prev_ego_position = (ego_data.position_x, ego_data.position_y)
 
 
+# Step 4
 for obj in obj_list:
     dist_calc = math.hypot(obj.position_x, obj.position_y)
     print(f"[STEP4] Object_ID={obj.object_id} → Position=({obj.position_x:.2f}, {obj.position_y:.2f}), "

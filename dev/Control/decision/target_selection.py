@@ -1,9 +1,5 @@
 # target_selection.py
-# Python version of target_selection module
-# Implements:
-# - select_target_from_object_list
-# - predict_object_future_path
-# - select_targets_for_acc_aeb
+# Updated with Carla-based distance calculation
 
 import math
 from decision.shared_types import (
@@ -21,6 +17,10 @@ def normalize_heading(hdg):
         hdg += 360.0
     return hdg
 
+# ===== Carla 기반 거리 재계산을 위한 헬퍼 함수 =====
+def calculate_absolute_distance(ego_x, ego_y, target_x, target_y):
+    return math.sqrt((ego_x - target_x) ** 2 + (ego_y - target_y) ** 2)
+
 # ===== 함수 1: select_target_from_object_list =====
 def select_target_from_object_list(obj_list: List[ObjectData],
                                    ego_data: EgoData,
@@ -36,12 +36,14 @@ def select_target_from_object_list(obj_list: List[ObjectData],
         adjusted_threshold += abs(lane_info.heading_error) * heading_coeff
 
     for obj in obj_list:
-        if obj.distance > 200:
+        # Carla 기준 거리 재계산 (앞바퀴 기준이 포함된 좌표계 전제)
+        abs_distance = calculate_absolute_distance(ego_data.position_x, ego_data.position_y,
+                                                   obj.position_x, obj.position_y)
+        if abs_distance > 200:
             continue
 
         lateral_pos = obj.position_y - lane_info.lane_offset
         center_offset = abs(lateral_pos)
-
         quarter_w = lane_info.lane_width * 0.25
         three_qw = lane_info.lane_width * 0.75
 
@@ -58,12 +60,12 @@ def select_target_from_object_list(obj_list: List[ObjectData],
         status = obj.status
         if heading_diff >= 150:
             status = ObjectStatus.ONCOMING
-        elif abs(rel_vel) >= 0.2 or obj.distance < 40.0:
+        elif abs(rel_vel) >= 0.2 or abs_distance < 40.0:
             status = ObjectStatus.MOVING
         else:
             status = ObjectStatus.STATIONARY
 
-        adjusted_distance = obj.distance
+        adjusted_distance = abs_distance
         if lane_info.is_curved_lane:
             heading_rad = lane_info.heading_error * math.pi / 180.0
             cos_val = math.cos(heading_rad)
@@ -179,7 +181,7 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
         py = obj.position_y
 
         # ACC 후보
-        if abs(py) <= 1.75 and obj.object_type == ObjectType.CAR and obj.status in [ObjectStatus.MOVING, ObjectStatus.STOPPED]:
+        if abs(py) <= 2.5 and obj.status != ObjectStatus.ONCOMING:
             score = 200 - obj.distance
             if lane_info.is_curved_lane and obj.cell_id < 5:
                 score += 10

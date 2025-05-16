@@ -1,5 +1,6 @@
 import math
 import carla
+from datetime import datetime
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
@@ -19,7 +20,7 @@ from decision.shared_types import (
     ObjectData, ObjectType, ObjectStatus
 )
 
-# ========== dict → ObjectData 변환 ==========
+# ========== dict → ObjectData 전환 ==========
 def convert_dict_to_objectdata(d):
     return ObjectData(
         object_id=d["object_id"],
@@ -42,6 +43,7 @@ class AutonomousDrivingSystem(BasicControl):
         super(AutonomousDrivingSystem, self).__init__(actor)
         print("======= ADAS Python System Activated =======")
 
+        self.start_time_ms = None
         self.world = CarlaDataProvider.get_world()
         self.map = self.world.get_map()
         self.spectator = self.world.get_spectator()
@@ -79,7 +81,7 @@ class AutonomousDrivingSystem(BasicControl):
         vel = self._actor.get_velocity()
         self.gps_data.velocity_x = vel.x
         self.gps_data.velocity_y = vel.y
-        self.gps_data.timestamp = self.current_time_ms
+        self.gps_data.timestamp = data.timestamp * 1000.0
 
     def _get_relative_objects(self):
         vehicles = self.world.get_actors().filter('vehicle.*')
@@ -110,13 +112,17 @@ class AutonomousDrivingSystem(BasicControl):
                 'accel_y': 0.0,
                 'distance': math.hypot(rx, ry),
                 'heading': heading,
-                'object_type': 0,  # CAR
-                'status': 0        # MOVING
+                'object_type': 0,
+                'status': 0
             })
         return objs
 
     def run_step(self):
-        self.current_time_ms += 50.0
+        if self.start_time_ms is None:
+            self.start_time_ms = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
+
+        self.current_time_ms = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
+
         time_data = TimeData(self.current_time_ms)
         ego_data = EGO.ego_vehicle_estimation(time_data, self.gps_data, self.imu_data, self.kf_state)
 
@@ -130,6 +136,30 @@ class AutonomousDrivingSystem(BasicControl):
             change_status=LaneChangeStatus.KEEP
         )
         lane_output = LANE.lane_selection(lane_data, ego_data)
+
+        # 정확한 거리 계산을 위한 앞바퀴 기준 거리 측정
+        vehicles = self.world.get_actors().filter("vehicle.*")
+        ego_tf = self._actor.get_transform()
+        ego_loc = ego_tf.location
+        ego_forward = ego_tf.get_forward_vector()
+        ego_bbox = self._actor.bounding_box
+        ego_front = ego_loc + ego_forward * ego_bbox.extent.x
+
+        min_distance = float('inf')
+        closest_vehicle_id = -1
+
+        for v in vehicles:
+            if v.id == self.ego_id:
+                continue
+            tf = v.get_transform()
+            loc = tf.location
+            forward = tf.get_forward_vector()
+            bbox = v.bounding_box
+            target_front = loc + forward * bbox.extent.x
+            dist = ego_front.distance(target_front)
+            if dist < min_distance:
+                min_distance = dist
+                closest_vehicle_id = v.id
 
         obj_dict_list = self._get_relative_objects()
         obj_list = [convert_dict_to_objectdata(d) for d in obj_dict_list]
@@ -162,14 +192,14 @@ class AutonomousDrivingSystem(BasicControl):
         self._update_spectator()
 
         # === Debugging Print ===
-        # 기준 좌표 변환
-        ego_tf = self._actor.get_transform()
-        ego_loc = ego_tf.location
-        front_offset_x = 1.5  # 차량 앞바퀴 중심 오프셋 (예시값)
-        ref_x = ego_loc.x - front_offset_x
-        ref_y = ego_loc.y
-        print(f"[STEP2] ego.get_location() = ({ego_loc.x:.2f}, {ego_loc.y:.2f}) → 기준점 변환 후 ({ref_x:.2f}, {ref_y:.2f})")
+        elapsed_sec = int((self.current_time_ms - self.start_time_ms) // 1000)
+        gps_dt = abs(self.current_time_ms - self.gps_data.timestamp)
+        gt_vel = self._actor.get_velocity().x
+        vel_err = abs(gt_vel - ego_data.velocity_x)
+        imu_valid = abs(self.imu_data.accel_x) < 9.8
+        gps_valid = gps_dt <= 50.0
 
+        print(f"[STEP1][{elapsed_sec} sec] 정속 주행 확인 → Velocity = {ego_data.velocity_x:.2f} m/s")
 
     def reset(self):
         if hasattr(self, "_imu_sensor"):

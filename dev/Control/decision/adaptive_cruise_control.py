@@ -57,7 +57,7 @@ def calculate_accel_for_distance_pid(mode: ACCMode, target_data: ACCTarget, ego_
     dist_prev_error = error
 
     accel = kp * error + ki * dist_integral + kd * d_err
-    accel = max(min(accel, 10.0), -10.0)
+    accel = max(-5.0, min(3.0, accel))
 
     if mode == ACCMode.STOP:
         if target_data.status == ObjectStatus.STOPPED and ego_data.velocity_x < 0.5:
@@ -79,7 +79,7 @@ def calculate_accel_for_speed_pid(ego_data: EgoData, lane_data: LaneSelectOutput
         target_speed = min(target_speed, 15.0)
 
     error = target_speed - ego_data.velocity_x
-    kp, ki, kd = 0.5, 0.1, 0.05
+    kp, ki, kd = 0.4, 0.03, 0.1
 
     speed_integral += error * delta_time
     d_err = (error - speed_prev_error) / (delta_time + 1e-5)
