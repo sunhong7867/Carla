@@ -74,12 +74,12 @@ def calculate_accel_for_speed_pid(ego_data: EgoData, lane_data: LaneSelectOutput
     if ego_data is None or lane_data is None or delta_time <= 0.0:
         return 0.0
 
-    target_speed = 22.22  # 80 km/h
+    target_speed = 15  # 80 km/h
     if lane_data.is_curved_lane:
         target_speed = min(target_speed, 15.0)
 
     error = target_speed - ego_data.velocity_x
-    kp, ki, kd = 0.4, 0.03, 0.1
+    kp, ki, kd = 0.4, 0.18, 0.1
 
     speed_integral += error * delta_time
     d_err = (error - speed_prev_error) / (delta_time + 1e-5)

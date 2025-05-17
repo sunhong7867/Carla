@@ -1,61 +1,34 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-16" description="ACC_S001" author="JSH" />
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="ACC_S001: 전방 차량 없음, 목표 속도 유지 시나리오" author="JSH"/>
+
   <ParameterDeclarations>
-    <ParameterDeclaration name="k10" parameterType="double" value="2.78" />
-    <ParameterDeclaration name="k20" parameterType="double" value="5.56" />
-    <ParameterDeclaration name="k30" parameterType="double" value="8.33" />
-    <ParameterDeclaration name="k40" parameterType="double" value="11.11" />
-    <ParameterDeclaration name="k50" parameterType="double" value="13.89" />
-    <ParameterDeclaration name="k60" parameterType="double" value="16.67" />
-    <ParameterDeclaration name="k70" parameterType="double" value="19.44" />
-    <ParameterDeclaration name="k80" parameterType="double" value="22.22" />
-    <ParameterDeclaration name="k90" parameterType="double" value="25.0" />
-    <ParameterDeclaration name="k100" parameterType="double" value="27.78" />
-    <ParameterDeclaration name="k110" parameterType="double" value="30.56" />
-    <ParameterDeclaration name="k120" parameterType="double" value="33.33" />
-
-    <ParameterDeclaration name="egoinitspeed" parameterType="double" value="14" />
-    <ParameterDeclaration name="targetinitspeed" parameterType="double" value="14" />
-
-    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0" />
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="3.5" />
-
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="10" />
-    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0" />
-
-    <ParameterDeclaration name="ego_height" parameterType="double" value="28" />
-
-    <ParameterDeclaration name="weather_condition" parameterType="string" value="rain" />
-    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="1.0" />
-    <ParameterDeclaration name="cloud_State" parameterType="string" value="free" />
-    <ParameterDeclaration name="fog_range" parameterType="double" value="100.0" />
-
+    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
   </ParameterDeclarations>
 
-  <CatalogLocations />
+  <CatalogLocations/>
+
   <RoadNetwork>
-    <LogicFile filepath="Map1" />
-    <SceneGraphFile filepath="" />
+    <LogicFile filepath="Map1"/>
+    <SceneGraphFile filepath=""/>
   </RoadNetwork>
 
   <Entities>
     <ScenarioObject name="hero">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
-        <ParameterDeclarations />
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0" />
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
         <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9" />
-          <Dimensions width="2.1" length="4.5" height="1.8" />
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
         <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1"
-            positionZ="0.3" />
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0"
-            positionZ="0.3" />
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
         </Axles>
         <Properties>
-          <Property name="type" value="ego_vehicle" />
+          <Property name="type" value="ego_vehicle"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
@@ -66,15 +39,14 @@
       <Actions>
         <GlobalAction>
           <EnvironmentAction>
-            <Environment name="Environment1">
-              <TimeOfDay animation="true" dateTime="2022-10-01T12:00:00" />
-              <Weather cloudState="$cloud_State">
-                <Sun intensity="10000" azimuth="0" elevation="1.57" />
-                <Fog visualRange="10000.0" />
-                <Precipitation precipitationType="$weather_condition"
-                  intensity="$precipitationType_intensity" />
+            <Environment name="DefaultWeather">
+              <TimeOfDay animation="false" dateTime="2025-05-13T12:00:00"/>
+              <Weather cloudState="free">
+                <Sun intensity="10000" azimuth="0" elevation="1.57"/>
+                <Fog visualRange="10000.0"/>
+                <Precipitation precipitationType="dry" intensity="0.0"/>
               </Weather>
-              <RoadCondition frictionScaleFactor="1.0" />
+              <RoadCondition frictionScaleFactor="1.0"/>
             </Environment>
           </EnvironmentAction>
         </GlobalAction>
@@ -83,8 +55,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0"
-                  p="0" r="0" />
+                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -94,40 +65,39 @@
               <AssignControllerAction>
                 <Controller name="HeroAgent">
                   <Properties>
-                    <Property name="module" value="autonomous_driving_system" />
+                    <Property name="module" value="autonomous_driving_system"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
               <OverrideControllerValueAction>
-                <Throttle value="0" active="false" />
-                <Brake value="0" active="false" />
-                <Clutch value="0" active="false" />
-                <ParkingBrake value="0" active="false" />
-                <SteeringWheel value="0" active="false" />
-                <Gear number="0" active="false" />
+                <Throttle value="0" active="false"/>
+                <Brake value="0" active="false"/>
+                <Clutch value="0" active="false"/>
+                <ParkingBrake value="0" active="false"/>
+                <SteeringWheel value="0" active="false"/>
+                <Gear number="0" active="false"/>
               </OverrideControllerValueAction>
             </ControllerAction>
           </PrivateAction>
         </Private>
-
       </Actions>
     </Init>
-    <Story name="MyStory">
-      <Act name="Speedupall">
-        <ManeuverGroup maximumExecutionCount="1" name="Speedupall">
+
+    <Story name="ACC_Speed_Control_Story">
+      <Act name="ACC_Speed_Act">
+        <ManeuverGroup name="EgoGroup" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="AllSpeedUp">
-            <Event name="AllSpeedUpEvent" priority="overwrite">
-              <Action name="AllSpeedUpAction">
+          <Maneuver name="AccelerateToTargetSpeed">
+            <Event name="StartDriving" priority="overwrite">
+              <Action name="SetTargetSpeed">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="2000"
-                        dynamicsDimension="distance" />
+                      <SpeedActionDynamics dynamicsShape="linear" value="20" dynamicsDimension="time"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="15" />
+                        <AbsoluteTargetSpeed value="22.22"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -135,31 +105,22 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="AtSimulationStarts" delay="0" conditionEdge="rising">
+                  <Condition name="SimulationStart" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="0" rule="greaterThan" />
+                      <SimulationTimeCondition value="0" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
               </StartTrigger>
-              <!-- <StopTrigger>
-                <ConditionGroup>
-                  <Condition name="EndCondition" delay="1" conditionEdge="rising">
-                    <ByValueCondition>
-                      <SimulationTimeCondition value="5" rule="greaterThan" />
-                    </ByValueCondition>
-                  </Condition>
-                </ConditionGroup>
-              </StopTrigger> -->
             </Event>
           </Maneuver>
         </ManeuverGroup>
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="AtSimulationStarts" delay="0" conditionEdge="rising">
+            <Condition name="StartImmediately" delay="0" conditionEdge="rising">
               <ByValueCondition>
-                <SimulationTimeCondition value="0" rule="greaterThan" />
+                <SimulationTimeCondition value="0" rule="greaterThan"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
@@ -169,9 +130,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndCondition" delay="1" conditionEdge="rising">
+        <Condition name="StopAfterDuration" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="20.0" rule="greaterThan" />
+            <SimulationTimeCondition value="20" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

@@ -1,40 +1,39 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S003" author="JSH" />
-  <ParameterDeclarations>
-    <ParameterDeclaration name="egoinitspeed" parameterType="double" value="14" />
-    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0" />
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="3.5" />
-    <ParameterDeclaration name="ego_height" parameterType="double" value="28" />
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S003: GPS 및 IMU 무효 구간에서 추정 유지 검증 시나리오" author="JSH"/>
 
-    <!-- 날씨: 맑음, 센서 동작 안정화 목적 -->
-    <ParameterDeclaration name="weather_condition" parameterType="string" value="dry" />
-    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="0.0" />
-    <ParameterDeclaration name="cloud_State" parameterType="string" value="free" />
-    <ParameterDeclaration name="fog_range" parameterType="double" value="10000.0" />
+  <ParameterDeclarations>
+    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="3.5"/>
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28.0"/>
+    <ParameterDeclaration name="egoinitspeed" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="weather_condition" parameterType="string" value="dry"/>
+    <ParameterDeclaration name="precipitation_intensity" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="cloud_state" parameterType="string" value="free"/>
+    <ParameterDeclaration name="fog_range" parameterType="double" value="10000.0"/>
   </ParameterDeclarations>
 
-  <CatalogLocations />
+  <CatalogLocations/>
+
   <RoadNetwork>
-    <LogicFile filepath="Map1" />
-    <SceneGraphFile filepath="" />
+    <LogicFile filepath="Map1"/>
+    <SceneGraphFile filepath=""/>
   </RoadNetwork>
 
   <Entities>
     <ScenarioObject name="hero">
       <Vehicle name="vehicle.pass.white.k5" vehicleCategory="car">
-        <ParameterDeclarations />
-        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0" />
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
         <BoundingBox>
-          <Center x="1.5" y="0.0" z="0.9" />
-          <Dimensions width="2.1" length="4.5" height="1.8" />
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
         <Axles>
-          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3" />
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3" />
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
         </Axles>
         <Properties>
-          <Property name="type" value="ego_vehicle" />
+          <Property name="type" value="ego_vehicle"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
@@ -46,13 +45,13 @@
         <GlobalAction>
           <EnvironmentAction>
             <Environment name="Environment1">
-              <TimeOfDay animation="true" dateTime="2022-10-01T12:00:00" />
-              <Weather cloudState="$cloud_State">
-                <Sun intensity="10000" azimuth="0" elevation="1.57" />
-                <Fog visualRange="10000.0" />
-                <Precipitation precipitationType="$weather_condition" intensity="$precipitationType_intensity" />
+              <TimeOfDay animation="true" dateTime="2022-10-01T12:00:00"/>
+              <Weather cloudState="free">
+                <Sun intensity="10000" azimuth="0" elevation="1.57"/>
+                <Fog visualRange="10000.0"/>
+                <Precipitation precipitationType="dry" intensity="0.0"/>
               </Weather>
-              <RoadCondition frictionScaleFactor="1.0" />
+              <RoadCondition frictionScaleFactor="1.0"/>
             </Environment>
           </EnvironmentAction>
         </GlobalAction>
@@ -61,27 +60,30 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0" />
+                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
-
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
                 <Controller name="HeroAgent">
                   <Properties>
-                    <Property name="module" value="autonomous_driving_system" />
+                    <Property name="module" value="autonomous_driving_system"/>
+                    <Property name="gps_delay_start" value="13000"/>
+                    <Property name="gps_delay_duration" value="2000"/>
+                    <Property name="imu_disable_start" value="13000"/>
+                    <Property name="imu_disable_duration" value="2000"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
               <OverrideControllerValueAction>
-                <Throttle value="0" active="false" />
-                <Brake value="0" active="false" />
-                <Clutch value="0" active="false" />
-                <ParkingBrake value="0" active="false" />
-                <SteeringWheel value="0" active="false" />
-                <Gear number="0" active="false" />
+                <Throttle value="0" active="false"/>
+                <Brake value="0" active="false"/>
+                <Clutch value="0" active="false"/>
+                <ParkingBrake value="0" active="false"/>
+                <SteeringWheel value="0" active="false"/>
+                <Gear number="0" active="false"/>
               </OverrideControllerValueAction>
             </ControllerAction>
           </PrivateAction>
@@ -89,21 +91,21 @@
       </Actions>
     </Init>
 
-    <Story name="EgoSensorDrop">
-      <Act name="SensorStartAct">
-        <ManeuverGroup maximumExecutionCount="1" name="SensorDropGroup">
+    <Story name="EgoEstimationValidation">
+      <Act name="EgoSpeedControl">
+        <ManeuverGroup name="AccelerateTo15" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="StartWithSteadySpeed">
-            <Event name="MaintainSpeed" priority="overwrite">
-              <Action name="SetInitialSpeed">
+          <Maneuver name="SpeedUp">
+            <Event name="Reach15mps" priority="overwrite">
+              <Action name="SetSpeed15">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="step" value="20" dynamicsDimension="time" />
+                      <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="15" />
+                        <AbsoluteTargetSpeed value="15.0"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -111,9 +113,9 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="AtSimStart" delay="0" conditionEdge="rising">
+                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="0" rule="greaterThan" />
+                      <SimulationTimeCondition value="0.0" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -124,9 +126,9 @@
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="AtSimStart" delay="0" conditionEdge="rising">
+            <Condition name="ActStart" delay="0" conditionEdge="rising">
               <ByValueCondition>
-                <SimulationTimeCondition value="0" rule="greaterThan" />
+                <SimulationTimeCondition value="0" rule="greaterThan"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
@@ -136,9 +138,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndAfter20s" delay="1" conditionEdge="rising">
+        <Condition name="EndCondition" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="20.0" rule="greaterThan" />
+            <SimulationTimeCondition value="20.0" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>
