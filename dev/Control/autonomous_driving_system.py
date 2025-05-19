@@ -1,179 +1,256 @@
+# autonomous_driving_system.py
+
+#!/usr/bin/env python
 import math
+import csv
+from pathlib import Path
 import carla
-from datetime import datetime
 
 from srunner.scenariomanager.actorcontrols.basic_control import BasicControl
 from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 
 from decision import ego_vehicle_estimation as EGO
-#from decision import lane_selection as LANE
-#from decision import target_selection as TS
-#from decision import adaptive_cruise_control as ACC
-#from decision import autonomous_emergency_brake as AEB
-#from decision import lane_following_assist as LFA
-#from decision import arbitration as ARB
-
+from decision import lane_selection as LANE
+from decision import target_selection as TS
+from decision import adaptive_cruise_control as ACC
+from decision import autonomous_emergency_brake as AEB
+from decision import lane_following_assist as LFA
+from decision import arbitration as ARB
+from controller import engine_control, brake_control, steer_control
 from decision.shared_types import (
-    TimeData, GPSData, IMUData, EgoVehicleKFState, EgoData,
-    LaneData, LaneSelectOutput, LaneType, LaneChangeStatus,
+    LaneData, LaneType, LaneChangeStatus,
+    TimeData, GPSData, IMUData,
     ObjectData, ObjectType, ObjectStatus
 )
+
+def convert_dict_to_objectdata(d):
+    return ObjectData(
+        object_id=d["object_id"],
+        object_type=ObjectType(d["object_type"]),
+        position_x=d["position_x"],
+        position_y=d["position_y"],
+        position_z=d.get("position_z", 0.0),
+        velocity_x=d["velocity_x"],
+        velocity_y=d["velocity_y"],
+        accel_x=d.get("accel_x", 0.0),
+        accel_y=d.get("accel_y", 0.0),
+        heading=d["heading"],
+        distance=d["distance"],
+        status=ObjectStatus(d["status"]),
+        cell_id=d.get("cell_id", 0)
+    )
 
 class AutonomousDrivingSystem(BasicControl):
     def __init__(self, actor, args=None):
         super().__init__(actor)
-        print(f'=========== ADAS Python System Activated ===========')
+        print("======= ADAS Python System Activated =======")
 
         self._actor = actor
-        self.spectator = CarlaDataProvider.get_world().get_spectator()
         self.world = CarlaDataProvider.get_world()
-        self.carla_map = self.world.get_map()
+        self.map = self.world.get_map()
+        self.spectator = self.world.get_spectator()
         self.ego_id = actor.id
 
+        self.control = carla.VehicleControl()
         self.kf_state = EGO.init_ego_vehicle_kf_state()
-        self.gps_data = GPSData(0.0, 0.0, 0.0)
         self.imu_data = IMUData(0.0, 0.0, 0.0)
+        self.gps_data = GPSData(0.0, 0.0, 0.0)
         self.time_data = TimeData(0.0)
 
-        self.control = carla.VehicleControl()
+        self.sim_start_time = None
+        self.gps_sensor_time = 0.0
+        self.last_imu_time = 0.0
+        self.last_gps_time = 0.0
+        self.imu_intervals = []
+        self.gps_intervals = []
+        self.log_data = []
+
         self._set_imu_sensor()
+        self._set_gps_sensor()
 
     def _init_control(self):
-        # 제어 객체 생성
         self.control = carla.VehicleControl()
         self.control.steer = 0.0
         self.control.throttle = 0.0
         self.control.brake = 0.0
 
-
     def _set_imu_sensor(self):
-        blueprint = self.world.get_blueprint_library().find('sensor.other.imu')
-        imu_transform = carla.Transform(carla.Location(), carla.Rotation())
-        self.imu_sensor = self.world.spawn_actor(blueprint, imu_transform, attach_to=self._actor)
-        self.imu_sensor.listen(lambda imu: self._on_imu_update(imu))
+        bp = self.world.get_blueprint_library().find('sensor.other.imu')
+        tf = carla.Transform(carla.Location(), carla.Rotation())
+        self.imu_sensor = self.world.spawn_actor(bp, tf, attach_to=self._actor)
+        self.imu_sensor.listen(lambda data: self._on_imu_update(data))
+
+    def _set_gps_sensor(self):
+        bp = self.world.get_blueprint_library().find('sensor.other.gnss')
+        bp.set_attribute('sensor_tick', '0.05')  # 20Hz 설정
+        tf = carla.Transform(carla.Location(), carla.Rotation())
+        self.gps_sensor = self.world.spawn_actor(bp, tf, attach_to=self._actor)
+        self.gps_sensor.listen(lambda data: self._on_gps_update(data))
 
     def _on_imu_update(self, data):
-        self.imu_data.accel_x = data.accelerometer.x
-        self.imu_data.accel_y = data.accelerometer.y
-        self.imu_data.yaw_rate = data.gyroscope.z
+        now = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
+        if self.last_imu_time > 0:
+            self.imu_intervals.append(now - self.last_imu_time)
+        self.last_imu_time = now
+        self.imu_data = IMUData(data.accelerometer.x, data.accelerometer.y, math.degrees(data.gyroscope.z))
+
+    def _on_gps_update(self, data):
+        now = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
+        if self.last_gps_time > 0:
+            self.gps_intervals.append(now - self.last_gps_time)
+        self.last_gps_time = now
+        self.gps_sensor_time = data.timestamp * 1000.0
 
     def _spectator_update(self):
-        transform = self._actor.get_transform()
-        transform.location.x -= 10
-        transform.location.z += 3
-        self.spectator.set_transform(transform)
+        tf = self._actor.get_transform()
+        tf.location.x -= 10
+        tf.location.z += 5
+        self.spectator.set_transform(tf)
 
-    def convert_waypoint_to_lanedata(self, waypoint: carla.Waypoint) -> LaneData:
-        current_yaw = waypoint.transform.rotation.yaw
-        next_wps = waypoint.next(2.0)
-        is_curved = False
-        next_curvature = 0.0
-        if next_wps:
-            next_yaw = next_wps[0].transform.rotation.yaw
-            diff = (next_yaw - current_yaw + 180) % 360 - 180
-            is_curved = abs(diff) > 5.0
-            next_curvature = abs(diff)
+    def _get_relative_objects(self):
+        vehicles = self.world.get_actors().filter('vehicle.*')
+        ego_tf = self._actor.get_transform()
+        ego_loc = ego_tf.location
+        yaw = math.radians(ego_tf.rotation.yaw)
+        cy, sy = math.cos(-yaw), math.sin(-yaw)
+
+        objs = []
+        for v in vehicles:
+            if v.id == self.ego_id:
+                continue
+            loc = v.get_location()
+            vel = v.get_velocity()
+            dx, dy = loc.x - ego_loc.x, loc.y - ego_loc.y
+            rx = dx * cy - dy * sy
+            ry = dx * sy + dy * cy
+            rvx = vel.x * cy - vel.y * sy
+            rvy = vel.x * sy + vel.y * cy
+            heading = v.get_transform().rotation.yaw - ego_tf.rotation.yaw
+            objs.append({
+                'object_id': v.id,
+                'position_x': rx,
+                'position_y': ry,
+                'velocity_x': rvx,
+                'velocity_y': rvy,
+                'accel_x': 0.0,
+                'accel_y': 0.0,
+                'distance': math.hypot(rx, ry),
+                'heading': heading,
+                'object_type': 0,
+                'status': 0
+            })
+        return objs
+
+    def run_step(self):
+        timestamp = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
+        if self.sim_start_time is None:
+            self.sim_start_time = timestamp
+        self.time_data.current_time = timestamp
+        elapsed_sec = (timestamp - self.sim_start_time) / 1000.0
+
+        vel = self._actor.get_velocity()
+        gps_data = GPSData(vel.x, vel.y, self.gps_sensor_time, self.gps_sensor_time)
+        gps_dt = abs(timestamp - self.gps_sensor_time)
+        gps_update_enabled = gps_dt <= 50.0
+
+        ego = EGO.ego_vehicle_estimation(self.time_data, gps_data, self.imu_data, self.kf_state)
+
+        # === Waypoint 기반 차선 중심 offset 계산 ===
+        waypoint = self.map.get_waypoint(self._actor.get_location(), project_to_road=True,
+                                         lane_type=carla.LaneType.Driving)
+        lane_center_y = waypoint.transform.location.y
+        ego_y = self._actor.get_location().y
+        offset = ego_y - lane_center_y
 
         lane_data = LaneData(
-            lane_type=LaneType.CURVE if is_curved else LaneType.STRAIGHT,
-            curvature=next_curvature,
-            next_curvature=next_curvature,
-            offset=0.0,
-            heading=current_yaw,
+            lane_type=LaneType.STRAIGHT,
+            curvature=0.0,
+            next_curvature=0.0,
+            offset=offset,
+            heading=waypoint.transform.rotation.yaw,
             width=waypoint.lane_width,
             change_status=LaneChangeStatus.KEEP
         )
-        return lane_data
 
-    def convert_vehicle_to_objectdata(self, veh, ego_transform) -> ObjectData:
-        loc = veh.get_location()
-        vel = veh.get_velocity()
-        acc = veh.get_acceleration()
-        yaw = veh.get_transform().rotation.yaw
+        lane_output = LANE.lane_selection(lane_data, ego)
 
-        dx = loc.x - ego_transform.location.x
-        dy = loc.y - ego_transform.location.y
-        ego_yaw = math.radians(ego_transform.rotation.yaw)
-        cos_yaw = math.cos(-ego_yaw)
-        sin_yaw = math.sin(-ego_yaw)
-
-        rel_x = dx * cos_yaw - dy * sin_yaw
-        rel_y = dx * sin_yaw + dy * cos_yaw
-
-        vx = vel.x * cos_yaw - vel.y * sin_yaw
-        vy = vel.x * sin_yaw + vel.y * cos_yaw
-
-        ax = acc.x * cos_yaw - acc.y * sin_yaw
-        ay = acc.x * sin_yaw + acc.y * cos_yaw
-
-        return ObjectData(
-            object_id=veh.id,
-            object_type=ObjectType.CAR,
-            position_x=rel_x,
-            position_y=rel_y,
-            position_z=loc.z,
-            velocity_x=vx,
-            velocity_y=vy,
-            accel_x=ax,
-            accel_y=ay,
-            heading=yaw,
-            distance=math.sqrt(rel_x**2 + rel_y**2),
-            status=ObjectStatus.MOVING,
-            cell_id=0
-        )
-
-    def run_step(self):
-        self.time_data.current_time = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
-        vel = self._actor.get_velocity()
-        self.gps_data.velocity_x = vel.x
-        self.gps_data.velocity_y = vel.y
-        self.gps_data.timestamp = self.time_data.current_time
-
-        ego_data = EGO.ego_vehicle_estimation(self.time_data, self.gps_data, self.imu_data, self.kf_state)
-
-        ego_loc = self._actor.get_location()
-        ego_wpt = self.carla_map.get_waypoint(ego_loc, project_to_road=True)
-        lane_data = self.convert_waypoint_to_lanedata(ego_wpt)
-        lane_output = LANE.lane_selection(lane_data, ego_data)
-
-        all_vehicles = self.world.get_actors().filter("vehicle.*")
-        object_list = []
-        for v in all_vehicles:
-            if v.id != self.ego_id:
-                obj = self.convert_vehicle_to_objectdata(v, self._actor.get_transform())
-                object_list.append(obj)
-
-        filtered = TS.select_target_from_object_list(object_list, ego_data, lane_output)
+        obj_list = [convert_dict_to_objectdata(d) for d in self._get_relative_objects()]
+        filtered = TS.select_target_from_object_list(obj_list, ego, lane_output)
         predicted = TS.predict_object_future_path(filtered, lane_output)
-        acc_target, aeb_target = TS.select_targets_for_acc_aeb(ego_data, predicted, lane_output)
+        acc_target, aeb_target = TS.select_targets_for_acc_aeb(ego, predicted, lane_output)
 
-        acc_mode = ACC.acc_mode_selection(acc_target, ego_data, lane_output)
-        accel_dist = ACC.calculate_accel_for_distance_pid(acc_mode, acc_target, ego_data, self.time_data.current_time)
-        accel_speed = ACC.calculate_accel_for_speed_pid(ego_data, lane_output, 0.05)
-        desired_accel = ACC.acc_output_selection(acc_mode, accel_dist, accel_speed)
+        acc_mode = ACC.acc_mode_selection(acc_target, ego, lane_output)
+        acc_dist = ACC.calculate_accel_for_distance_pid(acc_mode, acc_target, ego, timestamp)
+        acc_speed = ACC.calculate_accel_for_speed_pid(ego, lane_output, 0.05)
+        acc_accel = ACC.acc_output_selection(acc_mode, acc_dist, acc_speed)
 
-        ttc_info = AEB.calculate_ttc_for_aeb(aeb_target, ego_data)
-        aeb_mode = AEB.aeb_mode_selection(aeb_target, ego_data, ttc_info)
-        decel_aeb = AEB.calculate_decel_for_aeb(aeb_mode, ttc_info)
+        ttc = AEB.calculate_ttc_for_aeb(aeb_target, ego)
+        aeb_mode = AEB.aeb_mode_selection(aeb_target, ego, ttc)
+        aeb_accel = AEB.calculate_decel_for_aeb(aeb_mode, ttc)
 
-        lfa_mode = LFA.lfa_mode_selection(ego_data)
+        lfa_mode = LFA.lfa_mode_selection(ego)
         steer_pid = LFA.calculate_steer_in_low_speed_pid(lane_output, 0.05)
-        steer_stanley = LFA.calculate_steer_in_high_speed_stanley(ego_data, lane_output)
-        desired_steer = LFA.lfa_output_selection(lfa_mode, steer_pid, steer_stanley, lane_output, ego_data)
+        steer_sta = LFA.calculate_steer_in_high_speed_stanley(ego, lane_output)
+        steer_cmd = LFA.lfa_output_selection(lfa_mode, steer_pid, steer_sta, lane_output, ego)
 
-        control_dict = ARB.arbitration(desired_accel, decel_aeb, desired_steer, aeb_mode)
-        self.control.throttle = control_dict['throttle']
-        self.control.brake = control_dict['brake']
-        self.control.steer = control_dict['steer']
-
-        carla_loc = self._actor.get_location()
-        ego_position = (0.0, 0.0, 0.0)
-        carla_position = (carla_loc.x, carla_loc.y, carla_loc.z)
-
-        if ego_position == (0.0, 0.0, 0.0):
-            print(f"[STEP1][{self.time_data.current_time / 1000.0:.2f}s] Ego_Position == (0.0, 0.0, 0.0) → Pass")
-        else:
-            print(f"[STEP1][{self.time_data.current_time / 1000.0:.2f}s] Ego_Position != (0.0, 0.0, 0.0) → Fail")
+        ctrl = ARB.arbitration(acc_accel, aeb_accel, steer_cmd, aeb_mode)
+        self.control.throttle = engine_control.calc_engine_control_command(ctrl['throttle'])
+        self.control.brake = brake_control.calc_brake_command(ctrl['brake'])
+        self.control.steer = steer_control.calc_steer_command(ctrl['steer'])
+        self._actor.apply_control(self.control)
 
         self._spectator_update()
-        self._actor.apply_control(self.control)
+
+        self.log_data.append({
+            # 공통 시간 기록
+            "time": round((self.time_data.current_time - self.sim_start_time) / 1000.0, 2),
+
+            # === Step 1: 조향 반응 평가 (오프셋 방향과 조향 방향) ===
+            "ls_lane_offset": round(lane_output.lane_offset, 2),
+            "steer_cmd": round(ctrl['steer'], 2),
+
+            # === Step 2: 차선 중심 수렴 여부 판단 ===
+            "ls_lane_offset_abs": round(abs(lane_output.lane_offset), 2),
+
+            # === Step 3: 차선 내 판별 여부 (Lane_Width 기준) ===
+            "ls_is_within_lane": lane_output.is_within_lane,
+            "ls_lane_width": round(lane_output.lane_width, 2),
+
+            # === Step 4: 속도 유지 여부 평가 ===
+            "ego_velocity_x": round(ego.velocity_x, 2),
+
+            # === 보조 정보 ===
+            "ego_acceleration_x": round(ego.accel_x, 2),
+            "ls_is_curved_lane": lane_output.is_curved_lane,
+            "ls_lane_curvature": 0.0,  # 현재 시나리오에서는 고정
+
+            # 센서 유효성 상태
+            "gps_dt": round(abs(self.time_data.current_time - self.gps_sensor_time), 2),
+            "gps_update_enabled": gps_update_enabled,
+
+            # 센서 원시값 기록
+            "raw_gps_velocity_x": round(gps_data.velocity_x, 2),
+            "raw_gps_velocity_y": round(gps_data.velocity_y, 2),
+            "raw_imu_accel_x": round(self.imu_data.accel_x, 2),
+            "raw_imu_accel_y": round(self.imu_data.accel_y, 2),
+            "raw_imu_yaw_rate": round(self.imu_data.yaw_rate, 2),
+
+            # Ground Truth 비교용
+            "gt_velocity": round(math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2), 2),
+            "gt_acceleration": round(self._actor.get_acceleration().x, 2)
+        })
+
+    def reset(self):
+        if self.log_data:
+            path = Path("C:/Users/MSI-Book/Desktop/log/LANE_S001.csv")
+            with open(path, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=self.log_data[0].keys())
+                writer.writeheader()
+                writer.writerows(self.log_data)
+            print(f"[INFO] Step 로그 저장 완료: {path.name}")
+        if self.imu_sensor:
+            self.imu_sensor.stop()
+            self.imu_sensor.destroy()
+        if self.gps_sensor:
+            self.gps_sensor.stop()
+            self.gps_sensor.destroy()

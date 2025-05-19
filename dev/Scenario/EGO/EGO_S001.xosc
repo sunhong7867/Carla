@@ -88,7 +88,7 @@
               <AssignControllerAction>
                 <Controller name="EgoEstimationSystem">
                   <Properties>
-                    <Property name="module" value="ego_estimation_system"/>
+                    <Property name="module" value="autonomous_driving_system"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
