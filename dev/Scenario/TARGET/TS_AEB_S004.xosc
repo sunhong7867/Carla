@@ -1,17 +1,16 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S001: Ego 차량 좌표 기준 고정 및 앞바퀴 중심 기준 검증 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-20" description="TS_AEB_S004: 측면 Cut-in 차량이 AEB 타겟으로 우선 선정되는 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="51.5"/>
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="25.0"/>
     <ParameterDeclaration name="targetYinitposition" parameterType="double" value="3.5"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
-    <ParameterDeclaration name="weather_condition" parameterType="string" value="rain"/>
-    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="1.0"/>
+    <ParameterDeclaration name="weather_condition" parameterType="string" value="dry"/>
+    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="cloud_State" parameterType="string" value="free"/>
-    <ParameterDeclaration name="fog_range" parameterType="double" value="100.0"/>
   </ParameterDeclarations>
 
   <CatalogLocations/>
@@ -40,13 +39,13 @@
 
     <ScenarioObject name="target">
       <Vehicle name="vehicle.pass.black.carnival" vehicleCategory="car">
-        <Performance maxSpeed="0.0" maxAcceleration="0.0" maxDeceleration="10.0"/>
+        <Performance maxSpeed="20.0" maxAcceleration="2.0" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
         <Axles>
-          <FrontAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
           <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
         </Axles>
         <Properties>
@@ -59,11 +58,10 @@
   <Storyboard>
     <Init>
       <Actions>
-        <!-- 환경 설정 -->
         <GlobalAction>
           <EnvironmentAction>
             <Environment name="DefaultWeather">
-              <TimeOfDay animation="true" dateTime="2025-05-17T12:00:00"/>
+              <TimeOfDay animation="true" dateTime="2025-05-20T12:00:00"/>
               <Weather cloudState="$cloud_State">
                 <Sun intensity="10000" azimuth="0" elevation="1.57"/>
                 <Fog visualRange="10000.0"/>
@@ -74,7 +72,6 @@
           </EnvironmentAction>
         </GlobalAction>
 
-        <!-- Ego 차량 초기 위치 및 컨트롤러 설정 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
@@ -104,7 +101,6 @@
           </PrivateAction>
         </Private>
 
-        <!-- 정지된 타겟 차량 -->
         <Private entityRef="target">
           <PrivateAction>
             <TeleportAction>
@@ -117,21 +113,24 @@
       </Actions>
     </Init>
 
-    <Story name="EgoRun">
-      <Act name="EgoAcceleration">
-        <ManeuverGroup maximumExecutionCount="1" name="EgoSpeedUp">
+    <Story name="AEB_CutIn_Target_Selection">
+      <Act name="VehiclesMotion">
+        <ManeuverGroup maximumExecutionCount="1" name="SetSpeeds">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
+            <EntityRef entityRef="target"/>
           </Actors>
-          <Maneuver name="SetEgoSpeed">
-            <Event name="SpeedUpEvent" priority="overwrite">
-              <Action name="SetSpeed">
+
+          <!-- Ego 차량: 직선 주행 -->
+          <Maneuver name="EgoSpeed">
+            <Event name="EgoAccel" priority="overwrite">
+              <Action name="SetEgoSpeed">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="13.89"/>
+                        <AbsoluteTargetSpeed value="10"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -139,22 +138,50 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
+                  <Condition name="StartEgo" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                      <SimulationTimeCondition value="0.0" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
               </StartTrigger>
             </Event>
           </Maneuver>
+
+          <!-- Cut-in 차량: 우측에서 대각선 진입 (x, y 속도 포함) -->
+          <Maneuver name="TargetSpeed">
+            <Event name="CutInApproach" priority="overwrite">
+              <Action name="CutInMovement">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="20" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="1.6"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartCutIn" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0.5" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
         </ManeuverGroup>
 
         <StartTrigger>
           <ConditionGroup>
             <Condition name="StartAct" delay="0" conditionEdge="rising">
               <ByValueCondition>
-                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                <SimulationTimeCondition value="0.0" rule="greaterThan"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
@@ -164,9 +191,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndCondition" delay="1" conditionEdge="rising">
+        <Condition name="EndScenario" delay="1" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="20.0" rule="greaterThan"/>
+            <SimulationTimeCondition value="15.0" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

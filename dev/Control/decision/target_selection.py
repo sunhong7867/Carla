@@ -60,7 +60,7 @@ def select_target_from_object_list(obj_list: List[ObjectData],
         status = obj.status
         if heading_diff >= 150:
             status = ObjectStatus.ONCOMING
-        elif abs(rel_vel) >= 0.2 or abs_distance < 40.0:
+        elif abs(rel_vel) >= 0.5 or abs_distance < 40.0:
             status = ObjectStatus.MOVING
         else:
             status = ObjectStatus.STATIONARY
@@ -158,7 +158,8 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
         object_id=-1, position_x=0, position_y=0,
         velocity_x=0, velocity_y=0, accel_x=0, accel_y=0,
         distance=0, heading=0, status=ObjectStatus.STATIONARY,
-        situation=TargetSituation.NORMAL
+        situation=TargetSituation.NORMAL,
+        cell_id=0
     )
 
     aeb_target = AEBTarget(
@@ -226,6 +227,7 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
             distance=best_acc.distance,
             heading=best_acc.heading,
             status=best_acc.status,
+            cell_id=best_acc.cell_id,
             situation=TargetSituation.CUTIN if best_acc.cutin else TargetSituation.CURVE if lane_info.is_curved_lane else TargetSituation.NORMAL
         )
 

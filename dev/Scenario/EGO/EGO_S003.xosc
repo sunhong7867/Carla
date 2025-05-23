@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S003: GPS 및 IMU 무효 상태에서의 예측 유지 검증 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S003: GPS 및 IMU 모두 유효 상태에서의 Ego 상태 추정 영향 검증 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>

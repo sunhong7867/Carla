@@ -12,9 +12,9 @@ from srunner.scenariomanager.carla_data_provider import CarlaDataProvider
 from decision import ego_vehicle_estimation as EGO
 from decision import lane_selection as LANE
 from decision import target_selection as TS
-from decision import adaptive_cruise_control as ACC
-from decision import autonomous_emergency_brake as AEB
-from decision import lane_following_assist as LFA
+#from decision import adaptive_cruise_control as ACC
+#from decision import autonomous_emergency_brake as AEB
+#from decision import lane_following_assist as LFA
 from decision import arbitration as ARB
 from controller import engine_control, brake_control, steer_control
 from decision.shared_types import (
@@ -50,6 +50,7 @@ class AutonomousDrivingSystem(BasicControl):
         self.map = self.world.get_map()
         self.spectator = self.world.get_spectator()
         self.ego_id = actor.id
+        self.target = self._get_target_actor()
 
         self.control = carla.VehicleControl()
         self.kf_state = EGO.init_ego_vehicle_kf_state()
@@ -67,6 +68,12 @@ class AutonomousDrivingSystem(BasicControl):
 
         self._set_imu_sensor()
         self._set_gps_sensor()
+
+        # ====== [EGO_S004 전용 시나리오 파라미터] ======
+        self.gps_delay = float(args.get("gps_delay", 0.0)) if args else 0.0
+        self.imu_disable_time = float(args.get("imu_disable_time", -1.0)) if args else -1.0
+        self.imu_spike_enabled = args.get("imu_spike_injection", False) if args else False
+        self.sensor_restore_time = float(args.get("sensor_restore_time", -1.0)) if args else -1.0
 
     def _init_control(self):
         self.control = carla.VehicleControl()
@@ -107,6 +114,13 @@ class AutonomousDrivingSystem(BasicControl):
         tf.location.z += 5
         self.spectator.set_transform(tf)
 
+    def _get_target_actor(self):
+        vehicles = self.world.get_actors().filter('vehicle.*')
+        for v in vehicles:
+            if v.id != self.ego_id:
+                return v
+        return None
+
     def _get_relative_objects(self):
         vehicles = self.world.get_actors().filter('vehicle.*')
         ego_tf = self._actor.get_transform()
@@ -140,6 +154,8 @@ class AutonomousDrivingSystem(BasicControl):
                 'status': 0
             })
         return objs
+
+
 
     def run_step(self):
         timestamp = self.world.get_snapshot().timestamp.elapsed_seconds * 1000.0
@@ -179,70 +195,71 @@ class AutonomousDrivingSystem(BasicControl):
         predicted = TS.predict_object_future_path(filtered, lane_output)
         acc_target, aeb_target = TS.select_targets_for_acc_aeb(ego, predicted, lane_output)
 
-        acc_mode = ACC.acc_mode_selection(acc_target, ego, lane_output)
-        acc_dist = ACC.calculate_accel_for_distance_pid(acc_mode, acc_target, ego, timestamp)
-        acc_speed = ACC.calculate_accel_for_speed_pid(ego, lane_output, 0.05)
-        acc_accel = ACC.acc_output_selection(acc_mode, acc_dist, acc_speed)
+        #acc_mode = ACC.acc_mode_selection(acc_target, ego, lane_output)
+        #acc_dist = ACC.calculate_accel_for_distance_pid(acc_mode, acc_target, ego, timestamp)
+        #acc_speed = ACC.calculate_accel_for_speed_pid(ego, lane_output, 0.05)
+        #acc_accel = ACC.acc_output_selection(acc_mode, acc_dist, acc_speed)
 
-        ttc = AEB.calculate_ttc_for_aeb(aeb_target, ego)
-        aeb_mode = AEB.aeb_mode_selection(aeb_target, ego, ttc)
-        aeb_accel = AEB.calculate_decel_for_aeb(aeb_mode, ttc)
+        #ttc = AEB.calculate_ttc_for_aeb(aeb_target, ego)
+        #aeb_mode = AEB.aeb_mode_selection(aeb_target, ego, ttc)
+        #aeb_accel = AEB.calculate_decel_for_aeb(aeb_mode, ttc)
 
-        lfa_mode = LFA.lfa_mode_selection(ego)
-        steer_pid = LFA.calculate_steer_in_low_speed_pid(lane_output, 0.05)
-        steer_sta = LFA.calculate_steer_in_high_speed_stanley(ego, lane_output)
-        steer_cmd = LFA.lfa_output_selection(lfa_mode, steer_pid, steer_sta, lane_output, ego)
+        #lfa_mode = LFA.lfa_mode_selection(ego)
+        #steer_pid = LFA.calculate_steer_in_low_speed_pid(lane_output, 0.05)
+        #steer_sta = LFA.calculate_steer_in_high_speed_stanley(ego, lane_output)
+        #steer_cmd = LFA.lfa_output_selection(lfa_mode, steer_pid, steer_sta, lane_output, ego)
+        #ttc_data = AEB.calculate_ttc_for_aeb(aeb_target, ego)
+        #ctrl = ARB.arbitration(acc_accel, aeb_accel, steer_cmd, aeb_mode)
 
-        ctrl = ARB.arbitration(acc_accel, aeb_accel, steer_cmd, aeb_mode)
-        self.control.throttle = engine_control.calc_engine_control_command(ctrl['throttle'])
-        self.control.brake = brake_control.calc_brake_command(ctrl['brake'])
-        self.control.steer = steer_control.calc_steer_command(ctrl['steer'])
-        self._actor.apply_control(self.control)
+        #self.control.throttle = engine_control.calc_engine_control_command(ctrl['throttle'])
+        #self.control.brake = brake_control.calc_brake_command(ctrl['brake'])
+        #self.control.steer = steer_control.calc_steer_command(ctrl['steer'])
+        #self._actor.apply_control(self.control)
 
         self._spectator_update()
 
-        self.log_data.append({
-            # 공통 시간 기록
-            "time": round((self.time_data.current_time - self.sim_start_time) / 1000.0, 2),
+        # Ego 추정 위치
+        ego_est = EGO.ego_vehicle_estimation(self.time_data, gps_data, self.imu_data, self.kf_state)
+        ego_pos_x = ego_est.position_x
+        ego_pos_y = ego_est.position_y
+        ego_pos_z = ego_est.position_z
 
-            # === Step 1: 조향 반응 평가 (오프셋 방향과 조향 방향) ===
-            "ls_lane_offset": round(lane_output.lane_offset, 2),
-            "steer_cmd": round(ctrl['steer'], 2),
+        # Carla 절대 위치 + 앞바퀴 기준 보정
+        carla_loc = self._actor.get_location()
+        carla_yaw = math.radians(self._actor.get_transform().rotation.yaw)
+        offset = 3.1
+        ego_front_x = carla_loc.x + offset * math.cos(carla_yaw)
+        ego_front_y = carla_loc.y + offset * math.sin(carla_yaw)
+        carla_offset_error = math.sqrt(ego_front_x ** 2 + ego_front_y ** 2)  # 오차
 
-            # === Step 2: 차선 중심 수렴 여부 판단 ===
-            "ls_lane_offset_abs": round(abs(lane_output.lane_offset), 2),
+        # Target 차량 상대 위치 및 거리 계산
+        target_loc = self.target.get_location()
+        target_front_x = target_loc.x + offset * math.cos(carla_yaw)
+        target_front_y = target_loc.y + offset * math.sin(carla_yaw)
 
-            # === Step 3: 차선 내 판별 여부 (Lane_Width 기준) ===
-            "ls_is_within_lane": lane_output.is_within_lane,
-            "ls_lane_width": round(lane_output.lane_width, 2),
+        rel_x = target_front_x - ego_front_x
+        rel_y = target_front_y - ego_front_y
+        object_distance = math.sqrt(rel_x ** 2 + rel_y ** 2)
+        carla_distance = math.sqrt((carla_loc.x - target_loc.x) ** 2 + (carla_loc.y - target_loc.y) ** 2)
+        distance_error = abs(object_distance - carla_distance)
 
-            # === Step 4: 속도 유지 여부 평가 ===
-            "ego_velocity_x": round(ego.velocity_x, 2),
+        target_speed = 13.89  # 50km/h
+        current_speed = math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
 
-            # === 보조 정보 ===
-            "ego_acceleration_x": round(ego.accel_x, 2),
-            "ls_is_curved_lane": lane_output.is_curved_lane,
-            "ls_lane_curvature": 0.0,  # 현재 시나리오에서는 고정
+        if current_speed < target_speed:
+            self.control.throttle = 0.8
+            self.control.brake = 0.0
+        else:
+            self.control.throttle = 0.0
+            self.control.brake = 0.2
 
-            # 센서 유효성 상태
-            "gps_dt": round(abs(self.time_data.current_time - self.gps_sensor_time), 2),
-            "gps_update_enabled": gps_update_enabled,
+        self._actor.apply_control(self.control)
 
-            # 센서 원시값 기록
-            "raw_gps_velocity_x": round(gps_data.velocity_x, 2),
-            "raw_gps_velocity_y": round(gps_data.velocity_y, 2),
-            "raw_imu_accel_x": round(self.imu_data.accel_x, 2),
-            "raw_imu_accel_y": round(self.imu_data.accel_y, 2),
-            "raw_imu_yaw_rate": round(self.imu_data.yaw_rate, 2),
 
-            # Ground Truth 비교용
-            "gt_velocity": round(math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2), 2),
-            "gt_acceleration": round(self._actor.get_acceleration().x, 2)
-        })
 
     def reset(self):
         if self.log_data:
-            path = Path("C:/Users/MSI-Book/Desktop/log/LANE_S001.csv")
+            path = Path("C:/Users/MSI-Book/Desktop/log/EGO_S004.csv")
             with open(path, "w", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=self.log_data[0].keys())
                 writer.writeheader()

@@ -152,6 +152,7 @@ class ACCTarget:
     heading: float
     status: ObjectStatus
     situation: TargetSituation
+    cell_id: int = 0
 
 @dataclass
 class AEBTarget:
@@ -166,6 +167,7 @@ class AEBTarget:
     heading: float
     status: ObjectStatus
     situation: TargetSituation
+    cell_id: int = 0
 
 @dataclass
 class VehicleControl:

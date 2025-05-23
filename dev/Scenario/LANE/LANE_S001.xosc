@@ -4,7 +4,7 @@
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="-2"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="2"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
   </ParameterDeclarations>
 

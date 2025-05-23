@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S002: GPS 및 IMU 동기화 및 Kalman 속도 추정 검증 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S002: GPS 및 IMU 모두 유효 상태에서의 동기화 및 속도 추정 유지 검증 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>

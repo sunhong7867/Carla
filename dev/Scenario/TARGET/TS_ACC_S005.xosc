@@ -1,17 +1,17 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-17" description="EGO_S001: Ego 차량 좌표 기준 고정 및 앞바퀴 중심 기준 검증 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-20" description="TS_ACC_S003: 직선 도로에서 서로 다른 거리의 Moving 차량 중 가까운 차량이 ACC 타겟으로 선정되는 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="51.5"/>
-    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="3.5"/>
+    <ParameterDeclaration name="target1Xinitposition" parameterType="double" value="60.0"/>
+    <ParameterDeclaration name="target2Xinitposition" parameterType="double" value="90.0"/>
+    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
-    <ParameterDeclaration name="weather_condition" parameterType="string" value="rain"/>
-    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="1.0"/>
+    <ParameterDeclaration name="weather_condition" parameterType="string" value="dry"/>
+    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="cloud_State" parameterType="string" value="free"/>
-    <ParameterDeclaration name="fog_range" parameterType="double" value="100.0"/>
   </ParameterDeclarations>
 
   <CatalogLocations/>
@@ -38,9 +38,26 @@
       </Vehicle>
     </ScenarioObject>
 
-    <ScenarioObject name="target">
+    <ScenarioObject name="target1">
       <Vehicle name="vehicle.pass.black.carnival" vehicleCategory="car">
-        <Performance maxSpeed="0.0" maxAcceleration="0.0" maxDeceleration="10.0"/>
+        <Performance maxSpeed="20.0" maxAcceleration="2.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="simulation"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+
+    <ScenarioObject name="target2">
+      <Vehicle name="vehicle.pass.black.carnival" vehicleCategory="car">
+        <Performance maxSpeed="20.0" maxAcceleration="2.0" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
@@ -59,11 +76,10 @@
   <Storyboard>
     <Init>
       <Actions>
-        <!-- 환경 설정 -->
         <GlobalAction>
           <EnvironmentAction>
             <Environment name="DefaultWeather">
-              <TimeOfDay animation="true" dateTime="2025-05-17T12:00:00"/>
+              <TimeOfDay animation="true" dateTime="2025-05-20T12:00:00"/>
               <Weather cloudState="$cloud_State">
                 <Sun intensity="10000" azimuth="0" elevation="1.57"/>
                 <Fog visualRange="10000.0"/>
@@ -74,7 +90,6 @@
           </EnvironmentAction>
         </GlobalAction>
 
-        <!-- Ego 차량 초기 위치 및 컨트롤러 설정 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
@@ -104,12 +119,23 @@
           </PrivateAction>
         </Private>
 
-        <!-- 정지된 타겟 차량 -->
-        <Private entityRef="target">
+        <!-- 가까운 타겟 차량 (target1: 60m) -->
+        <Private entityRef="target1">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$targetXinitposition" y="$targetYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="$target1Xinitposition" y="$targetYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+        </Private>
+
+        <!-- 먼 타겟 차량 (target2: 90m) -->
+        <Private entityRef="target2">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="$target2Xinitposition" y="$targetYinitposition" z="$ego_height" h="0" p="0" r="0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -117,21 +143,25 @@
       </Actions>
     </Init>
 
-    <Story name="EgoRun">
-      <Act name="EgoAcceleration">
-        <ManeuverGroup maximumExecutionCount="1" name="EgoSpeedUp">
+    <Story name="ACC_Target_Selection_DistanceBased">
+      <Act name="VehicleMotion">
+        <ManeuverGroup name="SpeedSet" maximumExecutionCount="1">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
+            <EntityRef entityRef="target1"/>
+            <EntityRef entityRef="target2"/>
           </Actors>
-          <Maneuver name="SetEgoSpeed">
-            <Event name="SpeedUpEvent" priority="overwrite">
-              <Action name="SetSpeed">
+
+          <!-- Ego 차량 가속 -->
+          <Maneuver name="EgoSpeed">
+            <Event name="EgoSpeedEvent" priority="overwrite">
+              <Action name="EgoSpeedAction">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="13.89"/>
+                        <AbsoluteTargetSpeed value="15"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -139,7 +169,7 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
+                  <Condition name="EgoStartCondition" delay="0" conditionEdge="rising">
                     <ByValueCondition>
                       <SimulationTimeCondition value="0" rule="greaterThan"/>
                     </ByValueCondition>
@@ -148,11 +178,66 @@
               </StartTrigger>
             </Event>
           </Maneuver>
+
+          <!-- target1 (60m) 속도 8 m/s -->
+          <Maneuver name="Target1Speed">
+            <Event name="Target1SpeedEvent" priority="overwrite">
+              <Action name="Target1SpeedAction">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="2" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="8"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="Target1StartCondition" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
+          <!-- target2 (90m) 속도 10 m/s -->
+          <Maneuver name="Target2Speed">
+            <Event name="Target2SpeedEvent" priority="overwrite">
+              <Action name="Target2SpeedAction">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="2" dynamicsDimension="time"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="10"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="Target2StartCondition" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
         </ManeuverGroup>
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="StartAct" delay="0" conditionEdge="rising">
+            <Condition name="StartActCondition" delay="0" conditionEdge="rising">
               <ByValueCondition>
                 <SimulationTimeCondition value="0" rule="greaterThan"/>
               </ByValueCondition>
