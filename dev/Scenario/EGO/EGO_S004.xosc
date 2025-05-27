@@ -66,10 +66,10 @@
                 <Controller name="HeroAgent">
                   <Properties>
                     <Property name="module" value="autonomous_driving_system"/>
-                    <Property name="gps_delay" value="0.06"/> <!-- 60ms 이후 GPS 무효 -->
-                    <Property name="imu_disable_time" value="3.0"/> <!-- 3초 후 IMU 수신 중단 -->
+                    <Property name="gps_delay" value="10.0"/> <!-- 60ms 이후 GPS 무효 -->
+                    <Property name="imu_disable_time" value="10.0"/> <!-- 3초 후 IMU 수신 중단 -->
                     <Property name="imu_spike_injection" value="true"/> <!-- 스파이크 주입 -->
-                    <Property name="sensor_restore_time" value="5.0"/> <!-- 5초에 센서 복구 -->
+                    <Property name="sensor_restore_time" value="15.0"/> <!-- 5초에 센서 복구 -->
                   </Properties>
                 </Controller>
               </AssignControllerAction>

@@ -5,7 +5,7 @@
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="40.0"/>
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="100.0"/>
     <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
     <ParameterDeclaration name="weather_condition" parameterType="string" value="rain"/>
@@ -134,7 +134,7 @@
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="15"/>
+                        <AbsoluteTargetSpeed value="13.889"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -161,7 +161,7 @@
                     <SpeedAction>
                       <SpeedActionDynamics dynamicsShape="linear" value="5" dynamicsDimension="time"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="5"/>
+                        <AbsoluteTargetSpeed value="11.111"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>

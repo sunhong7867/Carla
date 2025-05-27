@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-19" description="TS_LANE_S001: Ego 차량 직선 도로 차선 유지 상태 확인" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-23" description="LANE_S001: Ego 차량이 직선 도로를 일정 속도로 주행하며 차선 유지 상태를 확인하는 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="2"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
   </ParameterDeclarations>
 
   <CatalogLocations/>
-
   <RoadNetwork>
     <LogicFile filepath="Map1"/>
     <SceneGraphFile filepath=""/>
@@ -37,11 +36,11 @@
   <Storyboard>
     <Init>
       <Actions>
-        <!-- 환경 설정 -->
+        <!-- 환경 설정: 맑은 날씨 + 안개 -->
         <GlobalAction>
           <EnvironmentAction>
-            <Environment name="ClearWeather">
-              <TimeOfDay animation="true" dateTime="2025-05-19T12:00:00"/>
+            <Environment name="DefaultWeather">
+              <TimeOfDay animation="true" dateTime="2025-05-17T12:00:00"/>
               <Weather cloudState="free">
                 <Sun intensity="10000" azimuth="0" elevation="1.57"/>
                 <Fog visualRange="10000.0"/>
@@ -52,7 +51,7 @@
           </EnvironmentAction>
         </GlobalAction>
 
-        <!-- Ego 차량 초기 위치 및 ADAS 컨트롤러 설정 -->
+        <!-- Ego 차량 초기 위치 및 컨트롤러 설정 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
@@ -64,7 +63,7 @@
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
-                <Controller name="ADAS_LaneTestSystem">
+                <Controller name="EgoEstimationSystem">
                   <Properties>
                     <Property name="module" value="autonomous_driving_system"/>
                   </Properties>
@@ -84,21 +83,21 @@
       </Actions>
     </Init>
 
-    <Story name="LaneTrackingStory">
-      <Act name="EgoMaintainSpeed">
-        <ManeuverGroup maximumExecutionCount="1" name="EgoSpeedControl">
+    <Story name="EgoRun">
+      <Act name="EgoAcceleration">
+        <ManeuverGroup maximumExecutionCount="1" name="EgoSpeedUp">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="MaintainSpeed">
-            <Event name="AccelerateTo15" priority="overwrite">
+          <Maneuver name="SetEgoSpeed">
+            <Event name="SpeedUpEvent" priority="overwrite">
               <Action name="SetSpeed">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
+                      <SpeedActionDynamics dynamicsShape="linear" value="100" dynamicsDimension="time"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="15.0"/>
+                        <AbsoluteTargetSpeed value="15"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -106,7 +105,7 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartSpeed" delay="0" conditionEdge="rising">
+                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
                     <ByValueCondition>
                       <SimulationTimeCondition value="0.0" rule="greaterThan"/>
                     </ByValueCondition>

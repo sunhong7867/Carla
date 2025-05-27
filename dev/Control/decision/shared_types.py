@@ -142,6 +142,7 @@ class PredictedObject(ObjectData):
 @dataclass
 class ACCTarget:
     object_id: int
+    object_type: ObjectType
     position_x: float
     position_y: float
     velocity_x: float
@@ -157,6 +158,7 @@ class ACCTarget:
 @dataclass
 class AEBTarget:
     object_id: int
+    object_type: ObjectType
     position_x: float
     position_y: float
     velocity_x: float

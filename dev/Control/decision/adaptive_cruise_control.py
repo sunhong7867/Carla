@@ -30,9 +30,7 @@ def acc_mode_selection(target_data: ACCTarget, ego_data: EgoData, lane_data: Lan
     else:
         if status == ObjectStatus.STOPPED and ego_data.velocity_x < 0.5:
             return ACCMode.STOP
-        if situation == TargetSituation.CUTIN:
-            return ACCMode.DISTANCE
-        return ACCMode.SPEED
+        return ACCMode.DISTANCE
 
 # ===== FUNCTION 2: 거리 기반 PID 제어 =====
 def calculate_accel_for_distance_pid(mode: ACCMode, target_data: ACCTarget, ego_data: EgoData, current_time: float) -> float:
@@ -51,13 +49,13 @@ def calculate_accel_for_distance_pid(mode: ACCMode, target_data: ACCTarget, ego_
     target_distance = 40.0
     error = target_data.distance - target_distance
 
-    kp, ki, kd = 0.4, 0.05, 0.1
+    kp, ki, kd = 0.5, 0.04, 0.2
     dist_integral += error * delta_time
     d_err = (error - dist_prev_error) / delta_time
     dist_prev_error = error
 
     accel = kp * error + ki * dist_integral + kd * d_err
-    accel = max(-5.0, min(3.0, accel))
+    accel = max(-7.0, min(3.0, accel))
 
     if mode == ACCMode.STOP:
         if target_data.status == ObjectStatus.STOPPED and ego_data.velocity_x < 0.5:
@@ -74,9 +72,13 @@ def calculate_accel_for_speed_pid(ego_data: EgoData, lane_data: LaneSelectOutput
     if ego_data is None or lane_data is None or delta_time <= 0.0:
         return 0.0
 
-    target_speed = 15  # 80 km/h
+    target_speed = 	22.22  # 80 km/h
     if lane_data.is_curved_lane:
         target_speed = min(target_speed, 15.0)
+
+    # 속도 초과 시 감속 보정
+    if ego_data.velocity_x > target_speed + 1.0:
+        return -2.0
 
     error = target_speed - ego_data.velocity_x
     kp, ki, kd = 0.4, 0.18, 0.1
@@ -84,6 +86,10 @@ def calculate_accel_for_speed_pid(ego_data: EgoData, lane_data: LaneSelectOutput
     speed_integral += error * delta_time
     d_err = (error - speed_prev_error) / (delta_time + 1e-5)
     speed_prev_error = error
+
+    # 목표 속도 도달 시 throttle 제거
+    if abs(error) < 0.5:
+        return 0.0
 
     accel = kp * error + ki * speed_integral + kd * d_err
     return max(min(accel, 10.0), -10.0)

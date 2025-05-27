@@ -1,15 +1,29 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-13" description="AEB_S004: 정지 차량 감지 시 Alert 모드 전환 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2023-07-17T12:00:00" description="CARLA:MAP03_SC01"
+    author="YCS"/>
 
   <ParameterDeclarations>
-    <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="35.0"/>
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0.0"/>
-    <ParameterDeclaration name="ego_height" parameterType="double" value="28.0"/>
+    <ParameterDeclaration name="k10"  parameterType="double" value="2.78"/>
+    <ParameterDeclaration name="k60"  parameterType="double" value="16.67"/>
+
+    <ParameterDeclaration name="egoXinitposition"    parameterType="double" value="0"/>
+    <ParameterDeclaration name="egoYinitposition"    parameterType="double" value="-3.5"/>
+
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="50"/>
+    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="-3.5"/>
+
+    <ParameterDeclaration name="leadXinitposition"   parameterType="double" value="100"/>
+    <ParameterDeclaration name="leadYinitposition"   parameterType="double" value="-3.5"/>
+
+    <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
+
+    <ParameterDeclaration name="weather_condition"           parameterType="string" value="rain"/>
+    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="1.0"/>
+    <ParameterDeclaration name="cloud_State"                 parameterType="string" value="free"/>
   </ParameterDeclarations>
 
+  <CatalogLocations/>
   <RoadNetwork>
     <LogicFile filepath="Map1"/>
     <SceneGraphFile filepath=""/>
@@ -25,7 +39,7 @@
         </BoundingBox>
         <Axles>
           <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+          <RearAxle  maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
         </Axles>
         <Properties>
           <Property name="type" value="ego_vehicle"/>
@@ -33,19 +47,36 @@
       </Vehicle>
     </ScenarioObject>
 
-    <ScenarioObject name="vehicleA">
-      <Vehicle name="vehicle.pass.black.audi" vehicleCategory="car">
-        <Performance maxSpeed="0.0" maxAcceleration="0.1" maxDeceleration="8.0"/>
+    <ScenarioObject name="target">
+      <Vehicle name="vehicle.pass.black.carnival" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
         <BoundingBox>
           <Center x="1.5" y="0.0" z="0.9"/>
           <Dimensions width="2.1" length="4.5" height="1.8"/>
         </BoundingBox>
         <Axles>
           <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
-          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+          <RearAxle  maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
         </Axles>
         <Properties>
-          <Property name="type" value="npc_vehicle"/>
+          <Property name="type" value="simulation"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
+
+    <ScenarioObject name="lead">
+      <Vehicle name="vehicle.pass.green.tiguan" vehicleCategory="car">
+        <Performance maxSpeed="69.444" maxAcceleration="10.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle  maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="simulation"/>
         </Properties>
       </Vehicle>
     </ScenarioObject>
@@ -54,6 +85,20 @@
   <Storyboard>
     <Init>
       <Actions>
+        <GlobalAction>
+          <EnvironmentAction>
+            <Environment name="Environment1">
+              <TimeOfDay animation="true" dateTime="2022-10-01T12:00:00"/>
+              <Weather cloudState="$cloud_State">
+                <Sun intensity="10000" azimuth="0" elevation="1.57"/>
+                <Fog visualRange="10000.0"/>
+                <Precipitation precipitationType="$weather_condition" intensity="$precipitationType_intensity"/>
+              </Weather>
+              <RoadCondition frictionScaleFactor="1.0"/>
+            </Environment>
+          </EnvironmentAction>
+        </GlobalAction>
+
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
@@ -74,12 +119,16 @@
               <OverrideControllerValueAction>
                 <Throttle value="0" active="false"/>
                 <Brake value="0" active="false"/>
+                <Clutch value="0" active="false"/>
+                <ParkingBrake value="0" active="false"/>
+                <SteeringWheel value="0" active="false"/>
+                <Gear number="0" active="false"/>
               </OverrideControllerValueAction>
             </ControllerAction>
           </PrivateAction>
         </Private>
 
-        <Private entityRef="vehicleA">
+        <Private entityRef="target">
           <PrivateAction>
             <TeleportAction>
               <Position>
@@ -87,34 +136,123 @@
               </Position>
             </TeleportAction>
           </PrivateAction>
+        </Private>
+
+        <Private entityRef="lead">
           <PrivateAction>
-            <LongitudinalAction>
-              <SpeedAction>
-                <SpeedActionDynamics dynamicsShape="step" value="1.0" dynamicsDimension="time"/>
-                <SpeedActionTarget>
-                  <AbsoluteTargetSpeed value="0.0"/>
-                </SpeedActionTarget>
-              </SpeedAction>
-            </LongitudinalAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="$leadXinitposition" y="$leadYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
           </PrivateAction>
         </Private>
       </Actions>
     </Init>
 
-    <Story name="AEB_Alert_StoppedVehicle">
-      <Act name="AlertAct">
-        <ManeuverGroup name="StoppedVehicleGroup" maximumExecutionCount="1">
+    <Story name="CutOutStory">
+      <Act name="MainAct">
+        <!-- target 주행 2000 m -->
+        <ManeuverGroup maximumExecutionCount="1" name="TargetCruise">
           <Actors selectTriggeringEntities="false">
-            <EntityRef entityRef="vehicleA"/>
+            <EntityRef entityRef="target"/>
           </Actors>
-          <Maneuver name="DoNothingStoppedVehicle"/>
+          <Maneuver name="Cruise">
+            <Event name="CruiseEvt" priority="overwrite">
+              <Action name="CruiseAction">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="13.89"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartCruise" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+
+        <!-- lead 주행 2000 m -->
+        <ManeuverGroup maximumExecutionCount="1" name="LeadCruise">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="lead"/>
+          </Actors>
+          <Maneuver name="LeadDrive">
+            <Event name="LeadDriveEvt" priority="overwrite">
+              <Action name="LeadDriveAction">
+                <PrivateAction>
+                  <LongitudinalAction>
+                    <SpeedAction>
+                      <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
+                      <SpeedActionTarget>
+                        <AbsoluteTargetSpeed value="$k60"/>
+                      </SpeedActionTarget>
+                    </SpeedAction>
+                  </LongitudinalAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartLeadDrive" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+
+        <!-- target cut-out -->
+        <ManeuverGroup maximumExecutionCount="1" name="TargetLaneChange">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="target"/>
+          </Actors>
+          <Maneuver name="LaneChangeManeuver">
+            <Event name="LaneChangeEvt" priority="overwrite">
+              <Action name="LaneChangeAction">
+                <PrivateAction>
+                  <LateralAction>
+                    <LaneChangeAction>
+                      <LaneChangeActionDynamics dynamicsShape="linear" value="44" dynamicsDimension="distance"/>
+                      <LaneChangeTarget>
+                        <RelativeTargetLane entityRef="target" value="1"/>
+                      </LaneChangeTarget>
+                    </LaneChangeAction>
+                  </LateralAction>
+                </PrivateAction>
+              </Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="StartLaneChange" delay="0" conditionEdge="rising">
+                    <ByValueCondition>
+                      <SimulationTimeCondition value="4" rule="greaterThan"/>
+                    </ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
         </ManeuverGroup>
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="StartAt0.2s" delay="0" conditionEdge="rising">
+            <Condition name="ActStart" delay="0" conditionEdge="rising">
               <ByValueCondition>
-                <SimulationTimeCondition value="0.2" rule="greaterThan"/>
+                <SimulationTimeCondition value="0" rule="greaterThan"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
@@ -124,9 +262,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndAfter8s" delay="0" conditionEdge="rising">
+        <Condition name="ScenarioEnd" delay="1" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="8.0" rule="greaterThan"/>
+            <SimulationTimeCondition value="120" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

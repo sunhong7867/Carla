@@ -3,7 +3,7 @@
 
   <FileHeader revMajor="1" revMinor="0"
               date="2025-05-24T12:00:00"
-              description="TS_ACC_S005: Straight road, front-moving + side cut-in"
+              description="TS_AEB_S004: Straight road, front-moving + side cut-in"
               author="YCS"/>
 
   <ParameterDeclarations>
@@ -14,7 +14,7 @@
     <ParameterDeclaration name="egoY"    parameterType="double" value="0"/>
     <ParameterDeclaration name="frontX"  parameterType="double" value="100"/>
     <ParameterDeclaration name="frontY"  parameterType="double" value="0"/>
-    <ParameterDeclaration name="ciX"     parameterType="double" value="10"/>
+    <ParameterDeclaration name="ciX"     parameterType="double" value="50"/>
     <ParameterDeclaration name="ciY"     parameterType="double" value="3.5"/>
     <ParameterDeclaration name="zHeight" parameterType="double" value="28"/>
     <!-- 날씨 -->

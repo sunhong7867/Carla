@@ -67,7 +67,7 @@ def ego_vehicle_estimation(time_data: TimeData,
        check_spike(gps_vy, kf.prev_gps_vel_y, GPS_VEL_SPIKE_THRESH):
         gps_enabled = False
 
-
+    kf.gps_update_enabled = gps_enabled
     kf.prev_accel_y = ay
     kf.prev_yaw_rate = yaw_rate
 

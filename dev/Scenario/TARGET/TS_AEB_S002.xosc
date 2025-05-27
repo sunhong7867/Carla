@@ -1,15 +1,19 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-12" description="LANE_S004: 차선 변경 완료 상태에서 차로 변경 판단 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-25" description="TS_AEB_S002: 직선 주행 중 정면 Stopped 차량 한 대가 AEB 타겟으로 선정되는 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="60.0"/>
+    <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0.5"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
+    <ParameterDeclaration name="weather_condition" parameterType="string" value="free"/>
+    <ParameterDeclaration name="precipitationType_intensity" parameterType="double" value="0.0"/>
+    <ParameterDeclaration name="cloud_State" parameterType="string" value="free"/>
   </ParameterDeclarations>
 
   <CatalogLocations/>
-
   <RoadNetwork>
     <LogicFile filepath="Map1"/>
     <SceneGraphFile filepath=""/>
@@ -32,15 +36,33 @@
         </Properties>
       </Vehicle>
     </ScenarioObject>
+
+    <ScenarioObject name="target">
+      <Vehicle name="vehicle.pass.black.carnival" vehicleCategory="car">
+        <Performance maxSpeed="20.0" maxAcceleration="2.0" maxDeceleration="10.0"/>
+        <BoundingBox>
+          <Center x="1.5" y="0.0" z="0.9"/>
+          <Dimensions width="2.1" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Axles>
+          <FrontAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0.0" wheelDiameter="0.6" trackWidth="1.8" positionX="0.0" positionZ="0.3"/>
+        </Axles>
+        <Properties>
+          <Property name="type" value="simulation"/>
+        </Properties>
+      </Vehicle>
+    </ScenarioObject>
   </Entities>
 
   <Storyboard>
     <Init>
       <Actions>
+        <!-- 환경 설정 -->
         <GlobalAction>
           <EnvironmentAction>
-            <Environment name="ClearDay">
-              <TimeOfDay animation="true" dateTime="2025-05-12T12:00:00"/>
+            <Environment name="DefaultWeather">
+              <TimeOfDay animation="true" dateTime="2025-05-20T12:00:00"/>
               <Weather cloudState="free">
                 <Sun intensity="10000" azimuth="0" elevation="1.57"/>
                 <Fog visualRange="10000.0"/>
@@ -51,22 +73,21 @@
           </EnvironmentAction>
         </GlobalAction>
 
+        <!-- Ego 차량 초기 위치 및 컨트롤러 설정 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="$egoXinitposition" y="$egoYinitposition" z="$ego_height" h="0" p="0" r="0"/>
+                <WorldPosition x="0" y="0" z="28" h="0" p="0" r="0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
-
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
-                <Controller name="HeroAgent">
+                <Controller name="EgoEstimationSystem">
                   <Properties>
                     <Property name="module" value="autonomous_driving_system"/>
-                    <Property name="lane_change_status_override" value="0"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
@@ -81,24 +102,36 @@
             </ControllerAction>
           </PrivateAction>
         </Private>
+
+        <!-- Stopped 상태의 타겟 차량 -->
+        <Private entityRef="target">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <WorldPosition x="60.0" y="0.5" z="28" h="0" p="0" r="0"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+        </Private>
       </Actions>
     </Init>
 
-    <Story name="LANE_S004_LaneChangeDetection">
-      <Act name="EGO_MainAct">
-        <ManeuverGroup name="EGOGroup" maximumExecutionCount="1">
+    <Story name="ACC_Target_Selection_Stopped">
+      <Act name="VehiclesMotion">
+        <ManeuverGroup maximumExecutionCount="1" name="SetEgoSpeed">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="PerformLaneChange">
-            <Event name="StartDriving" priority="overwrite">
-              <Action name="MaintainSpeed">
+
+          <Maneuver name="EgoSpeed">
+            <Event name="SpeedUpEgo" priority="overwrite">
+              <Action name="SetEgoSpeed">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="5.0" dynamicsDimension="time"/>
+                      <SpeedActionDynamics dynamicsShape="linear" value="2000" dynamicsDimension="distance"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="5.0"/>
+                        <AbsoluteTargetSpeed value="15"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -106,7 +139,7 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartNow" delay="0" conditionEdge="rising">
+                  <Condition name="EgoStart" delay="0" conditionEdge="rising">
                     <ByValueCondition>
                       <SimulationTimeCondition value="0" rule="greaterThan"/>
                     </ByValueCondition>
@@ -119,7 +152,7 @@
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="ActStart" delay="0" conditionEdge="rising">
+            <Condition name="StartAct" delay="0" conditionEdge="rising">
               <ByValueCondition>
                 <SimulationTimeCondition value="0" rule="greaterThan"/>
               </ByValueCondition>
@@ -131,9 +164,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndScenario" delay="0" conditionEdge="rising">
+        <Condition name="EndCondition" delay="1" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="10" rule="greaterThan"/>
+            <SimulationTimeCondition value="20.0" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>

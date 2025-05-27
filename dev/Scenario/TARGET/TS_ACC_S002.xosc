@@ -5,7 +5,7 @@
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
     <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="60.0"/>
+    <ParameterDeclaration name="targetXinitposition" parameterType="double" value="100.0"/>
     <ParameterDeclaration name="targetYinitposition" parameterType="double" value="0.0"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
     <ParameterDeclaration name="weather_condition" parameterType="string" value="free"/>
@@ -108,7 +108,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="60.0" y="0.0" z="28" h="0" p="0" r="0"/>
+                <WorldPosition x="100.0" y="0.0" z="28" h="0" p="0" r="0"/>
               </Position>
             </TeleportAction>
           </PrivateAction>

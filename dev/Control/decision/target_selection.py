@@ -155,7 +155,7 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
                                pred_list: List[PredictedObject],
                                lane_info: LaneSelectOutput) -> Tuple[ACCTarget, AEBTarget]:
     acc_target = ACCTarget(
-        object_id=-1, position_x=0, position_y=0,
+        object_id=-1, position_x=0, position_y=0, object_type=ObjectType.CAR,
         velocity_x=0, velocity_y=0, accel_x=0, accel_y=0,
         distance=0, heading=0, status=ObjectStatus.STATIONARY,
         situation=TargetSituation.NORMAL,
@@ -163,7 +163,7 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
     )
 
     aeb_target = AEBTarget(
-        object_id=-1, position_x=0, position_y=0,
+        object_id=-1, position_x=0, position_y=0, object_type=ObjectType.CAR,
         velocity_x=0, velocity_y=0, accel_x=0, accel_y=0,
         distance=0, heading=0, status=ObjectStatus.STATIONARY,
         situation=TargetSituation.NORMAL
@@ -218,6 +218,7 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
     if best_acc:
         acc_target = ACCTarget(
             object_id=best_acc.object_id,
+            object_type=best_acc.object_type,
             position_x=best_acc.position_x,
             position_y=best_acc.position_y,
             velocity_x=best_acc.velocity_x,
@@ -234,6 +235,7 @@ def select_targets_for_acc_aeb(ego_data: EgoData,
     if best_aeb:
         aeb_target = AEBTarget(
             object_id=best_aeb.object_id,
+            object_type=best_aeb.object_type,
             position_x=best_aeb.position_x,
             position_y=best_aeb.position_y,
             velocity_x=best_aeb.velocity_x,

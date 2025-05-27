@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2025-05-12" description="LANE_S002: 곡률 반경이 작은 커브 구간에서 곡선 차선 인지 검증 시나리오" author="JSH"/>
+  <FileHeader revMajor="1" revMinor="0" date="2025-05-23" description="LANE_S002: Ego 차량이 차선 중심선을 벗어난 상태에서 정상 차선으로 복귀 후 주행하는 시나리오" author="JSH"/>
 
   <ParameterDeclarations>
     <ParameterDeclaration name="egoXinitposition" parameterType="double" value="0"/>
-    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="0"/>
+    <ParameterDeclaration name="egoYinitposition" parameterType="double" value="2.1"/>
     <ParameterDeclaration name="ego_height" parameterType="double" value="28"/>
   </ParameterDeclarations>
 
   <CatalogLocations/>
-
   <RoadNetwork>
     <LogicFile filepath="Map1"/>
     <SceneGraphFile filepath=""/>
@@ -37,10 +36,11 @@
   <Storyboard>
     <Init>
       <Actions>
+        <!-- 환경 설정: 맑은 날씨 + 안개 -->
         <GlobalAction>
           <EnvironmentAction>
-            <Environment name="ClearDay">
-              <TimeOfDay animation="true" dateTime="2025-05-12T12:00:00"/>
+            <Environment name="DefaultWeather">
+              <TimeOfDay animation="true" dateTime="2025-05-17T12:00:00"/>
               <Weather cloudState="free">
                 <Sun intensity="10000" azimuth="0" elevation="1.57"/>
                 <Fog visualRange="10000.0"/>
@@ -51,6 +51,7 @@
           </EnvironmentAction>
         </GlobalAction>
 
+        <!-- Ego 차량 초기 위치 및 컨트롤러 설정 -->
         <Private entityRef="hero">
           <PrivateAction>
             <TeleportAction>
@@ -59,16 +60,12 @@
               </Position>
             </TeleportAction>
           </PrivateAction>
-
           <PrivateAction>
             <ControllerAction>
               <AssignControllerAction>
-                <Controller name="HeroAgent">
+                <Controller name="EgoEstimationSystem">
                   <Properties>
                     <Property name="module" value="autonomous_driving_system"/>
-                    <Property name="lane_curvature_override" value="600.0"/>
-                    <Property name="lane_width_override" value="3.5"/>
-                    <Property name="lane_offset_override" value="0.0"/>
                   </Properties>
                 </Controller>
               </AssignControllerAction>
@@ -86,21 +83,21 @@
       </Actions>
     </Init>
 
-    <Story name="LANE_S002_CurvedLaneValidation">
-      <Act name="EGO_MainAct">
-        <ManeuverGroup name="EGOGroup" maximumExecutionCount="1">
+    <Story name="EgoRun">
+      <Act name="EgoAcceleration">
+        <ManeuverGroup maximumExecutionCount="1" name="EgoSpeedUp">
           <Actors selectTriggeringEntities="false">
             <EntityRef entityRef="hero"/>
           </Actors>
-          <Maneuver name="FollowCurvedLane">
-            <Event name="StartDriving" priority="overwrite">
-              <Action name="MaintainSpeed">
+          <Maneuver name="SetEgoSpeed">
+            <Event name="SpeedUpEvent" priority="overwrite">
+              <Action name="SetSpeed">
                 <PrivateAction>
                   <LongitudinalAction>
                     <SpeedAction>
-                      <SpeedActionDynamics dynamicsShape="linear" value="10.0" dynamicsDimension="time"/>
+                      <SpeedActionDynamics dynamicsShape="linear" value="100" dynamicsDimension="time"/>
                       <SpeedActionTarget>
-                        <AbsoluteTargetSpeed value="10.0"/>
+                        <AbsoluteTargetSpeed value="15"/>
                       </SpeedActionTarget>
                     </SpeedAction>
                   </LongitudinalAction>
@@ -108,9 +105,9 @@
               </Action>
               <StartTrigger>
                 <ConditionGroup>
-                  <Condition name="StartNow" delay="0" conditionEdge="rising">
+                  <Condition name="StartCondition" delay="0" conditionEdge="rising">
                     <ByValueCondition>
-                      <SimulationTimeCondition value="0" rule="greaterThan"/>
+                      <SimulationTimeCondition value="0.0" rule="greaterThan"/>
                     </ByValueCondition>
                   </Condition>
                 </ConditionGroup>
@@ -121,9 +118,9 @@
 
         <StartTrigger>
           <ConditionGroup>
-            <Condition name="ActStart" delay="0" conditionEdge="rising">
+            <Condition name="StartAct" delay="0" conditionEdge="rising">
               <ByValueCondition>
-                <SimulationTimeCondition value="0" rule="greaterThan"/>
+                <SimulationTimeCondition value="0.0" rule="greaterThan"/>
               </ByValueCondition>
             </Condition>
           </ConditionGroup>
@@ -133,9 +130,9 @@
 
     <StopTrigger>
       <ConditionGroup>
-        <Condition name="EndScenario" delay="0" conditionEdge="rising">
+        <Condition name="EndCondition" delay="0" conditionEdge="rising">
           <ByValueCondition>
-            <SimulationTimeCondition value="10" rule="greaterThan"/>
+            <SimulationTimeCondition value="20.0" rule="greaterThan"/>
           </ByValueCondition>
         </Condition>
       </ConditionGroup>
